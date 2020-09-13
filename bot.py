@@ -4,6 +4,8 @@ import random
 
 from discord.ext import commands
 
+print('test')
+
 #logging.basicConfig(level=logging.DEBUG, filename='logs.txt')
 #logger = logging.getLogger(__name__)
 #logger.debug('test')
