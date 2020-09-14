@@ -197,7 +197,7 @@ async def bomb(ctx, country=None, bomb_type=None, battle_rating=None):
             await ctx.send(f"Bombs Required for Bases: {base_bombs_required} \nBombs Required for Airfield: {airfield_bombs_required}")
 
     except Exception as e:
-        await ctx.send("Time made you fuck up, try again.")
+        await ctx.send("User error, try again.")
         raise e
 
 
