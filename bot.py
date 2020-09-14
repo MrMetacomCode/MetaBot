@@ -10,7 +10,7 @@ from discord.ext import commands
 #logger.debug('test')
 
 
-TOKEN = os.getenv('DISCORD_TOKEN')
+TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
 
 bot = commands.Bot(command_prefix='$')
 
@@ -196,7 +196,7 @@ async def bomb(ctx, country=None, bomb_type=None, battle_rating=None):
             await ctx.send(f"Bombs Required for Bases: {base_bombs_required} \nBombs Required for Airfield: {airfield_bombs_required}")
 
     except Exception as e:
-        await ctx.send("It's_Time#7551 made you fuck up, try again.")
+        await ctx.send("Time made you fuck up, try again.")
         raise e
 
 
