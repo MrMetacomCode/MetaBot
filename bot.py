@@ -17,6 +17,7 @@ bot = commands.Bot(command_prefix='$')
 bomb_data = {'US': {'AN-M30A1': [13, 17, 21, 25],
                     'AN-M57': [6, 8, 10, 12],
                     'LDGPMK.81': [5, 7, 9, 10],
+                    'AN-M64A1': [4, 5, 6, 7],
                     'M117CONE45': [2, 3, 3, 4],
                     'AN-M65A1': [2, 2, 3, 3],
                     'AN-M65A1FINM129': [2, 2, 3, 3],
