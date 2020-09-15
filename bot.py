@@ -136,7 +136,14 @@ async def bomb(ctx, country=None, bomb_type=None, battle_rating=None):
     try:
         if country is None:
             await ctx.send("Country is missing.")
+
+        if bomb_type is None:
+            await ctx.send("Bomb type is missing.")
+
+        if battle_rating is None:
+            await ctx.send("Battle rating is missing.")
             return
+
         country = country.upper()
         if country in ['AMERICA', 'AMERICAN', 'USA', 'United_States_of_America']:
             country = 'US'
@@ -156,10 +163,9 @@ async def bomb(ctx, country=None, bomb_type=None, battle_rating=None):
             country = 'FRANCE'
         elif country in ['SWEDISH']:
             country = 'SWEDEN'
+        if country not in bomb_data:
+            await ctx.send("Country is invalid.")
 
-        if bomb_type is None:
-            await ctx.send("Bomb type is missing.")
-            return
         bomb_type = bomb_type.upper()
         bomb_type_list = []
         for country_ in bomb_data.values():
@@ -169,9 +175,6 @@ async def bomb(ctx, country=None, bomb_type=None, battle_rating=None):
             await ctx.send("Bomb type is invalid.")
             return
 
-        if battle_rating is None:
-            await ctx.send("Battle rating is missing.")
-            return
         try:
             battle_rating = float(battle_rating)
         except ValueError:
