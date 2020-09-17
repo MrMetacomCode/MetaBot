@@ -7,11 +7,7 @@ TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
 client = discord.Client()
 
 
-@client.event
-async def on_ready():
-    print(f'{client.user.name} has connected to Discord!')
-
-
+# This sends a welcome DM when a new member joins the server
 @client.event
 async def on_member_join(member):
     await member.create_dm()
