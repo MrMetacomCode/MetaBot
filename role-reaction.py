@@ -14,7 +14,7 @@ async def on_message(message):
             embedvar = discord.Embed(title="React to this message to get your roles!",
                                      description="Click the corresponding emoji to receive your role.\n<:WarThunder:"
                                                  "745425772944162907> - War Thunder\n<:Apex:745425965764575312> - "
-                                                 "Apex\n<:ModernWarfare:757029285591515196> - "
+                                                 "Apex\n<:ModernWarfare:757104623738814554> - "
                                                  "Modern Warfare\n<:Minecraft:757029546632413346> - "
                                                  "Minecraft\n<:R6Siege:757030019909550122> - R6 Siege", color=0x00ff00)
             await message.channel.send(embed=embedvar)
@@ -42,7 +42,7 @@ async def on_raw_reaction_add(payload):
             await payload.member.add_roles(role)
             print(f"Assigned {member} {role}.")
 
-        if str(payload.emoji) == "<:ModernWarfare:757029285591515196>":
+        if str(payload.emoji) == "<:ModernWarfare:757104623738814554> ":
             guild = client.get_guild(payload.guild_id)
             member = guild.get_member(payload.user_id)
             role = get(payload.member.guild.roles, name='Modern Warfare')
@@ -81,7 +81,7 @@ async def on_raw_reaction_remove(payload):
             await member.remove_roles(role)
             print(f"Removed {role} from {member}.")
 
-        if str(payload.emoji) == "<:ModernWarfare:757029285591515196>":
+        if str(payload.emoji) == "<:ModernWarfare:757104623738814554>":
             guild = client.get_guild(payload.guild_id)
             member = guild.get_member(payload.user_id)
             role = get(guild.roles, name='Modern Warfare')
