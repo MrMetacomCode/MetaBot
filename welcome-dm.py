@@ -1,5 +1,4 @@
 import os
-
 import discord
 
 TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
