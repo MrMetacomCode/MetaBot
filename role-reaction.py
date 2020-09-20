@@ -27,7 +27,7 @@ async def on_message(message):
 @client.event
 async def on_raw_reaction_add(payload):
     # channel and message IDs should be integer:
-    if payload.channel_id == 700895165665247325 and payload.message_id == 757105374468767754:
+    if payload.channel_id == 700895165665247325 and payload.message_id == 757114312413151272:
         if str(payload.emoji) == "<:Apex:745425965764575312>":
             guild = client.get_guild(payload.guild_id)
             member = guild.get_member(payload.user_id)
@@ -66,7 +66,7 @@ async def on_raw_reaction_add(payload):
 
 @client.event
 async def on_raw_reaction_remove(payload):
-    if payload.channel_id == 700895165665247325 and payload.message_id == 757105374468767754:
+    if payload.channel_id == 700895165665247325 and payload.message_id == 757114312413151272:
         if str(payload.emoji) == "<:Apex:745425965764575312>":
             guild = client.get_guild(payload.guild_id)
             member = guild.get_member(payload.user_id)
