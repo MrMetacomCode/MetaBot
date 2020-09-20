@@ -42,7 +42,7 @@ async def on_raw_reaction_add(payload):
             await payload.member.add_roles(role)
             print(f"Assigned {member} {role}.")
 
-        if str(payload.emoji) == "<:ModernWarfare:757104623738814554> ":
+        if str(payload.emoji) == "<:ModernWarfare:757104623738814554>":
             guild = client.get_guild(payload.guild_id)
             member = guild.get_member(payload.user_id)
             role = get(payload.member.guild.roles, name='Modern Warfare')
