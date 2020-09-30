@@ -7,6 +7,7 @@ client = discord.Client()
 TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
 
 
+# This sends an embed message with a description of the roles.
 @client.event
 async def on_message(message):
     if message.channel.id == 700895165665247325:
@@ -19,6 +20,18 @@ async def on_message(message):
                                                  "Minecraft\n<:R6Siege:757030019909550122> - R6 Siege", color=0x00ff00)
             await message.channel.send(embed=embedvar)
             print("Changed message embed color.")
+        elif message.content.startswith('update'):
+            embedvar2 = discord.Embed(title="React to this message to get your roles!",
+                                      description="Click the corresponding emoji to receive your role.\n<:WarThunder:"
+                                                  "745425772944162907> - War Thunder\n<:Apex:745425965764575312> - "
+                                                  "Apex\n<:ModernWarfare:757104623738814554> - "
+                                                  "Modern Warfare\n<:Minecraft:757029546632413346> - "
+                                                  "Minecraft\n<:R6Siege:757030019909550122> - R6 Siege\n"
+                                                  "<:AmongUs:760192601625591859> - Among Us", color=0x00ff00)
+            channel = client.get_channel(700895165665247325)
+            msg = await channel.fetch_message(757114312413151272)
+            await msg.edit(embed=embedvar2)
+            print("Updated role reaction message.")
     else:
         return
 
@@ -63,6 +76,13 @@ async def on_raw_reaction_add(payload):
             await payload.member.add_roles(role)
             print(f"Assigned {member} {role}.")
 
+        if str(payload.emoji) == "<:AmongUs:760192601625591859>":
+            guild = client.get_guild(payload.guild_id)
+            member = guild.get_member(payload.user_id)
+            role = get(payload.member.guild.roles, name='Among Us')
+            await payload.member.add_roles(role)
+            print(f"Assigned {member} {role}.")
+
 
 @client.event
 async def on_raw_reaction_remove(payload):
@@ -101,6 +121,14 @@ async def on_raw_reaction_remove(payload):
             role = get(guild.roles, name='Minecraft')
             await member.remove_roles(role)
             print(f"Removed {role} from {member}.")
+
+        if str(payload.emoji) == "<:AmongUs:760192601625591859>":
+            guild = client.get_guild(payload.guild_id)
+            member = guild.get_member(payload.user_id)
+            role = get(guild.roles, name='Among Us')
+            await member.remove_roles(role)
+            print(f"Removed {role} from {member}.")
+
 
 print("Server Running")
 
