@@ -148,7 +148,7 @@ async def bomb(ctx, country=None, bomb_type=None, battle_rating=None):
         country = country.upper()
         if country in ['AMERICA', 'AMERICAN', 'USA', 'United_States_of_America']:
             country = 'US'
-        elif country in ['DE']:
+        elif country in ['DE', 'GERMANY', 'NAZI', 'FATHERLAND']:
             country = 'GERMAN'
         elif country in ['RUSSIA', 'RUSSIAN', 'SOVIET', 'USSR', 'RU']:
             country = 'RUSSIA'
