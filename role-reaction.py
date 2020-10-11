@@ -7,7 +7,7 @@ client = discord.Client()
 TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
 
 
-# This sends an embed message with a description of the roles.
+# This sends or updates an embed message with a description of the roles.
 @client.event
 async def on_message(message):
     if message.channel.id == 700895165665247325:
@@ -36,7 +36,7 @@ async def on_message(message):
         return
 
 
-# This is to add and remove the role Apex when the reaction is removed or added to the welcome message.
+# This is to add and remove the role when the reaction is removed or added to the welcome message.
 @client.event
 async def on_raw_reaction_add(payload):
     # channel and message IDs should be integer:
