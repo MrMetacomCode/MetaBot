@@ -1,5 +1,6 @@
 import os
 import random
+from discord import Intents
 # import logging
 
 from discord.ext import commands
@@ -11,7 +12,8 @@ from discord.ext import commands
 
 TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
 
-bot = commands.Bot(command_prefix='$')
+intents = Intents.all()
+bot = commands.Bot(command_prefix='$', intents=intents)
 
 bomb_data = {'US': {'AN-M30A1': [13, 17, 21, 25],
                     'AN-M57': [6, 8, 10, 12],
