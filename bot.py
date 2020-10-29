@@ -181,9 +181,32 @@ async def randomfact(ctx):
     await ctx.send(random_messages)
 
 
+@bot.command(name='guess', help='Guess a random number in 10 tries.')
+async def guessnumber(ctx):
+    await ctx.send(f"Hello {ctx.author.name}! I'm thinking of a number between 1 and 1000. You are given 10 tries to "
+                   f"find the number. Good luck!")
+    number = random.randint(1, 1000)
+
+    def check(message):
+        return message.author == ctx.author and message.channel == ctx.channel and message.content.isdigit()
+
+    for guessesTaken in range(10):
+
+        guess = int((await bot.wait_for('message', check=check)).content)
+
+        if guess < number:
+            await ctx.send("Your guess is too low.")
+        elif guess > number:
+            await ctx.send("Your guess is too high.")
+        else:
+            await ctx.send(f"GG! You correctly guessed the number in {guessesTaken + 1} guesses!")
+            return
+    else:
+        await ctx.send(f"Nope, sorry, you took too many guesses. The number I was thinking of was {number}")
+
+
 @bot.command(name='bombs', help='Find Bombs from Spreadsheet. If bomb name has spaces just smash it all together!')
 async def bomb(ctx, country=None, bomb_type=None, battle_rating=None):
-
     try:
         if country is None:
             await ctx.send("Country is missing.")
@@ -261,6 +284,6 @@ async def bomb(ctx, country=None, bomb_type=None, battle_rating=None):
         raise e
 
 
-print("Server Running")
+print("Server Running.")
 
 bot.run(TOKEN)
