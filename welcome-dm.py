@@ -9,7 +9,7 @@ client = discord.Client(intents=intents)
 TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
 
 
-# This sends a welcome DM when a new member joins the server
+# This sends a welcome DM when a new member joins the server and updated the total member count in #welcome-and-roles.
 @client.event
 async def on_member_join(member):
     now = datetime.datetime.now()
