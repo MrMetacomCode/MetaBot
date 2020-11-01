@@ -1,9 +1,10 @@
 import os
 import random
 from discord import Intents
-# import logging
-
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from discord.ext import commands
+# import logging
 
 # logging.basicConfig(level=logging.DEBUG, filename='logs.txt')
 # logger = logging.getLogger(__name__)
@@ -14,6 +15,33 @@ TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
 
 intents = Intents.all()
 bot = commands.Bot(command_prefix='$', intents=intents)
+
+
+async def func():
+    await bot.wait_until_ready()
+    channel = bot.get_channel(593941391110045699)
+    random_messages = ("<@442853051791835147> is mega sus.",
+                       "<@668335245610844161> still trying to land?",
+                       "<@762120478361518122> still not giving up cyan?",
+                       "<@472846171627454464> are you going to stop coding me yet?",
+                       "Where is my creator?")
+    random_messages = random.choice(random_messages)
+    await channel.send(random_messages)
+
+
+@bot.event
+async def on_ready():
+    print("Bot is ready.")
+
+    # Initializing scheduler
+    scheduler = AsyncIOScheduler()
+
+    # Sends "Your Message" at 12PM and 18PM (Local Time)
+    scheduler.add_job(func, CronTrigger(hour="0, 12", minute="0", second="0"))
+
+    # Starting the scheduler
+    scheduler.start()
+
 
 bomb_data = {'US': {'AN-M30A1': [13, 17, 21, 25],
                     'AN-M57': [6, 8, 10, 12],
