@@ -44,7 +44,7 @@ async def func():
                        "Sometimes, he would touch it up himself using shoe polish.",
                        "The voice actor of SpongeBob and the voice actor of Karen, Plankton’s computer wife, "
                        "have been married since 1995.",
-                       "The smell of freshly cut grass is actually the scent that plants release when in distress."
+                       "The smell of freshly cut grass is actually the scent that plants release when in distress.",
                        "During pregnancy woman’s brain shrinks and it takes up to six months to regain its original "
                        "size.",
                        "Human saliva contains a painkiller called opiorphin that is six times more powerful than "
