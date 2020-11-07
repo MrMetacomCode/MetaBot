@@ -374,7 +374,7 @@ class Metacash(commands.Cog):
         await self.open_account(ctx.author)
         user = ctx.author
         users = await self.get_bank_data()
-        earnings = random.randrange(100)
+        earnings = random.randrange(50)
         await ctx.send(f"Someone gave you {earnings} coins!")
 
         users[str(user.id)]["wallet"] += earnings
