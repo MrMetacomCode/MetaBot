@@ -162,7 +162,7 @@ class Metacash(commands.Cog):
         total = sorted(total, reverse=True)
 
         embedvar = discord.Embed(title=f"Top {x} Richest People", description="This is a total of bank and wallet "
-                                                                              "money.")
+                                                                              "money.", color=3394611)
         index = 1
         for amt in total:
             id_ = leader_board[amt]
