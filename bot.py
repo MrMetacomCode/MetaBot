@@ -68,9 +68,11 @@ class Metacash(commands.Cog):
 
         if name_ is None:
             return [False, 1]
-
+        amount = int(amount)
         cost = price * amount
+
         users = await self.get_bank_data()
+
         bal = await self.update_bank(user)
 
         if bal[0] < cost:
@@ -95,8 +97,8 @@ class Metacash(commands.Cog):
             obj = {"item": item_name, "amount": amount}
             users[str(user.id)]["bag"] = [obj]
 
-        with open("mainbank.json", "w") as bank:
-            json.dump(users, bank)
+        with open("mainbank.json", "w") as f:
+            json.dump(users, f)
 
         await self.update_bank(user, cost * -1, "wallet")
 
