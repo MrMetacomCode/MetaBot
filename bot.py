@@ -6,6 +6,7 @@ from discord import Intents
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from discord.ext import commands
+from discord.utils import get
 
 # import logging
 
@@ -473,6 +474,11 @@ class MetaBot(commands.Cog):
         # Starting the scheduler
         scheduler.start()
 
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if "happy birthday" in message.content:
+            await message.channel.send("Happy birthday!! :cake: :birthday: :tada:")
+
     bomb_data = {'US': {'AN-M30A1': [13, 17, 21, 25],
                         'AN-M57': [6, 8, 10, 12],
                         'LDGPMK.81': [5, 7, 9, 10],
@@ -582,6 +588,16 @@ class MetaBot(commands.Cog):
                             }
                  }
 
+    @bot.command(name='happybirthday', help='Tags a member with a bday message.')
+    async def bday(self, ctx, member: discord.Member):
+        await ctx.message.delete()
+        member = str(member)
+        member_name_end = member.find("#")
+        member_name = member[:member_name_end]
+        member_id = member[member_name_end + 1:]
+        user_id = get(bot.get_all_members(), name=member_name, discriminator=member_id).id
+        await ctx.send(f"Happy birthday <@{user_id}>!! :cake: :birthday: :tada:")
+
     @bot.command(name='rolldice', help='Simulates rolling dice.')
     async def roll(self, ctx, number_of_dice: int, number_of_sides: int):
         dice = [
@@ -589,35 +605,6 @@ class MetaBot(commands.Cog):
             for _ in range(number_of_dice)
         ]
         await ctx.send(', '.join(dice))
-
-    # Random command returns a random fact. @bot.command(name='random', help='Returns a random, interesting fact.')
-    # async def randomfact(ctx): random_messages = ("McDonald’s once made bubblegum-flavored broccoli.", "Some fungi
-    # create zombies, then control their minds.", "The first oranges weren’t orange. They were green.", "The Earl of
-    # Sandwich, John Montagu, who lived in the 1700s, reportedly invented the sandwich " "so he wouldn’t have to
-    # leave his gambling table to eat.", "Canadians say “sorry” so much that a law was passed in 2009 declaring that
-    # an apology can’t " "be used as evidence of admission to guilt.", "One habit of intelligent humans is being
-    # easily annoyed by people around them, but saying " "nothing in order to avoid a meaningless argument.",
-    # "Nintendo trademarked the phrase “It’s on like Donkey Kong” in 2010.", "There were two AI chatbots created by
-    # Facebook to talk to each other, but they were shut " "down after they started communicating in a language they
-    # made for themselves.", "Daniel Radcliffe was allergic to his Harry Potter glasses.", "Hershey’s Kisses are
-    # named that after the kissing sound the deposited chocolate makes as it " "falls from the machine on the
-    # conveyor belt.", "The Buddha commonly depicted in statues and pictures is a different person entirely. The "
-    # "real Buddha was actually incredibly skinny because of self-deprivation.", "There is a company in Japan that
-    # has schools that teach you how to be funny. The first one " "opened in 1982. About 1,000 students take the
-    # course each year.", "There are more Lego minifigures than there are people on Earth.", "Elvis was originally
-    # blonde. He started coloring his hair black for an edgier look. " "Sometimes, he would touch it up himself using
-    # shoe polish.", "The voice actor of SpongeBob and the voice actor of Karen, Plankton’s computer wife,
-    # " "have been married since 1995.", "The smell of freshly cut grass is actually the scent that plants release
-    # when in distress." "During pregnancy woman’s brain shrinks and it takes up to six months to regain its original
-    # " "size.", "Human saliva contains a painkiller called opiorphin that is six times more powerful than "
-    # "morphine.", "Hippopotamus milk is pink.", "On Venus, it snows metal. Two types have been discovered so far:
-    # galena and bismuthinite.", "Sound waves can make objects levitate.", "People are more likely to make good
-    # decisions when they need to urinate.", "Some snakes survive for two years without a meal.", "A strawberry isn’t
-    # an actual berry, but a banana is.", "A jellyfish is approximately 95% water.", "The brain treats rejection like
-    # physical pain.", "Cotton candy was invented by a dentist.", "Nazi human experimentation was a series of medical
-    # experiments on large numbers of " "prisoners, including children, by Nazi Germany in its concentration camps in
-    # the early to " "mid 1940s, during World War II and the Holocaust.") random_messages = random.choice(
-    # random_messages) await ctx.send(random_messages)
 
     @bot.command(name='guess', help='Guess a random number in 10 tries.')
     async def guessnumber(self, ctx):
@@ -726,6 +713,7 @@ class MetaBot(commands.Cog):
 bot.remove_command("rolldice")
 bot.remove_command("guess")
 bot.remove_command("bombs")
+bot.remove_command("happybirthday")
 bot.add_cog(MetaBot(bot))
 
 print("Server Running.")
