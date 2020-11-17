@@ -2,6 +2,7 @@ import os
 import json
 import random
 import discord
+import datetime
 from discord import Intents
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -23,7 +24,7 @@ bot = commands.Bot(command_prefix='$', intents=intents)
 
 # Beginning of economy system.
 class Metacash(commands.Cog):
-    """Some stuff."""
+    """Economy bot commands."""
     main_shop = [{"name": "Watch", "price": 100, "description": "Time"},
                  {"name": "Laptop", "price": 1000, "description": "Work"},
                  {"name": "PC", "price": 10000, "description": "Gaming"}]
@@ -403,81 +404,204 @@ bot.add_cog(Metacash(bot))
 
 # End of economy system.
 
-
 class MetaBot(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
 
+    @bot.command(name='addfact', aliases=['addfacts'], help='Adds fact to random facts list.')
+    async def add_fact(self, ctx, fact_name=None, fact=None):
+        fact_name = fact_name.upper()
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        guild_id = str(ctx.guild.id)
+        if fact_name is None:
+            await ctx.send("Please include a fact name.")
+            return
+        elif fact is None:
+            await ctx.send("Please include fact. Make sure **'fact name' 'fact'** is the format you are using.")
+            return
+
+        if fact_name in guild_settings[guild_id]["random_facts"]:
+            await ctx.send(f"{fact_name} is already in the random facts list.")
+            return
+        else:
+            guild_settings[guild_id]["random_facts"][fact] = fact_name
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps(guild_settings))
+            await ctx.send(f"Added {fact_name} to the random facts list.")
+
+    @bot.command(name='removefact', aliases=['removefacts'], help='Adds fact to random facts list.')
+    async def remove_fact(self, ctx, fact_name):
+        fact_name = fact_name.upper()
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        guild_id = str(ctx.guild.id)
+        fact = None
+        for key, value in guild_settings[guild_id]["random_facts"].items():
+            if value == fact_name:
+                fact = key
+
+        if fact not in guild_settings[guild_id]["random_facts"]:
+            await ctx.send(f"{fact_name} isn't in the random facts list.")
+            return
+        else:
+            guild_settings[guild_id]["random_facts"].pop(fact)
+            await ctx.send(f"{fact_name} has been removed from the random facts list.")
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps(guild_settings))
+
+    @bot.command(name='listfacts', aliases=['listfact', 'listrandomfact', 'listrandomfacts'], help='Lists all facts '
+                                                                                                   'in random facts '
+                                                                                                   'list.')
+    async def list_facts(self, ctx):
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        guild_id = str(ctx.guild.id)
+
+        facts_display = ""
+        for fact, fact_name in guild_settings[guild_id]["random_facts"].items():
+            facts_display += f"{fact_name} - {fact}\n"
+        if not facts_display:
+            facts_display = "(No Facts Exist)"
+
+        embedvar = discord.Embed(title="Here are the random facts that will send at your given time periods:",
+                                 description="\n" + facts_display,
+                                 color=0x00ff00)
+        await ctx.send(embed=embedvar)
+
+    @bot.command(name='factsendtime', aliases=['factssendtime', 'facttime', 'factstime'], help='Set a time for a '
+                                                                                               'random fact to send. '
+                                                                                               'Hours is in 24h '
+                                                                                               'cycles.')
+    async def fact_send_time(self, ctx, hour=None, minute=None):
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        guild_id = str(ctx.guild.id)
+        current_hour = guild_settings[guild_id]["random_facts_send_time"]["hour"]
+        current_minute = guild_settings[guild_id]["random_facts_send_time"]["minute"]
+        if hour is None:
+            await ctx.send("Please include an hour.")
+            return
+        elif minute is None:
+            await ctx.send("Please include a minute.")
+            return
+        elif hour == current_hour and minute == current_minute:
+            await ctx.send(f"This time is currently set. Please enter a different hour or minute.")
+            return
+        else:
+            guild_settings[guild_id]["random_facts_send_time"]["hour"] = hour
+            guild_settings[guild_id]["random_facts_send_time"]["minute"] = minute
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps(guild_settings))
+            await ctx.send(f"Changed fact send time to {hour}:{minute}.")
+
     async def func(self):
         await bot.wait_until_ready()
-        channel = bot.get_channel(593941391110045699)
-        random_messages = ("McDonald’s once made bubblegum-flavored broccoli.",
-                           "Some fungi create zombies, then control their minds.",
-                           "The first oranges weren’t orange. They were green.",
-                           "The Earl of Sandwich, John Montagu, who lived in the 1700s, reportedly invented the sandwich "
-                           "so he wouldn’t have to leave his gambling table to eat.",
-                           "Canadians say “sorry” so much that a law was passed in 2009 declaring that an apology can’t "
-                           "be used as evidence of admission to guilt.",
-                           "One habit of intelligent humans is being easily annoyed by people around them, but saying "
-                           "nothing in order to avoid a meaningless argument.",
-                           "Nintendo trademarked the phrase “It’s on like Donkey Kong” in 2010.",
-                           "There were two AI chatbots created by Facebook to talk to each other, but they were shut down "
-                           "after they started communicating in a language they made for themselves.",
-                           "Daniel Radcliffe was allergic to his Harry Potter glasses.",
-                           "Hershey’s Kisses are named that after the kissing sound the deposited chocolate makes as it "
-                           "falls from the machine on the conveyor belt.",
-                           "The Buddha commonly depicted in statues and pictures is a different person entirely. The real "
-                           "Buddha was actually incredibly skinny because of self-deprivation.",
-                           "There is a company in Japan that has schools that teach you how to be funny. The first one "
-                           "opened in 1982. About 1,000 students take the course each year.",
-                           "There are more Lego minifigures than there are people on Earth.",
-                           "Elvis was originally blonde. He started coloring his hair black for an edgier look. "
-                           "Sometimes, he would touch it up himself using shoe polish.",
-                           "The voice actor of SpongeBob and the voice actor of Karen, Plankton’s computer wife, "
-                           "have been married since 1995.",
-                           "The smell of freshly cut grass is actually the scent that plants release when in distress.",
-                           "During pregnancy woman’s brain shrinks and it takes up to six months to regain its original "
-                           "size.",
-                           "Human saliva contains a painkiller called opiorphin that is six times more powerful than "
-                           "morphine.",
-                           "Hippopotamus milk is pink.",
-                           "On Venus, it snows metal. Two types have been discovered so far: galena and bismuthinite.",
-                           "Sound waves can make objects levitate.",
-                           "People are more likely to make good decisions when they need to urinate.",
-                           "Some snakes survive for two years without a meal.",
-                           "A strawberry isn’t an actual berry, but a banana is.",
-                           "A jellyfish is approximately 95% water.",
-                           "The brain treats rejection like physical pain.",
-                           "Cotton candy was invented by a dentist.",
-                           "Nazi human experimentation was a series of medical experiments on large numbers of prisoners, "
-                           "including children, by Nazi Germany in its concentration camps in the early to mid 1940s, "
-                           "during World War II and the Holocaust.",
-                           "<@442853051791835147> is mega sus.",
-                           "<@668335245610844161> still trying to land?",
-                           "<@762120478361518122> still not giving up cyan?",
-                           "<@472846171627454464> are you going to stop coding me yet?",
-                           "Where is my creator?")
-        random_messages = random.choice(random_messages)
-        await channel.send(random_messages)
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        for guild_id in guild_settings:
+            channel = bot.get_channel(guild_settings[guild_id]["random_facts_channel_id"])
+            if guild_settings[guild_id]["random_facts"] is not None:
+                random_facts = []
+                for key in guild_settings[guild_id]["random_facts"].items():
+                    random_facts += key
+                random_messages = random_facts[::2]
+                random_choice = random.choice(random_messages)
+                await channel.send(random_choice)
+            else:
+                await channel.send(f"You need to add a fact first.")
 
     @commands.Cog.listener()
     async def on_ready(self):
         print("Bot is ready.")
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        for guild_id in guild_settings:
+            # Initializing scheduler
+            scheduler = AsyncIOScheduler()
+            hour = guild_settings[guild_id]["random_facts_send_time"]["hour"]
+            minute = guild_settings[guild_id]["random_facts_send_time"]["minute"]
 
-        # Initializing scheduler
-        scheduler = AsyncIOScheduler()
+            # Sends "Your Message" at 12PM and 18PM (Local Time)
+            scheduler.add_job(self.func, CronTrigger(hour=hour, minute=minute, second="0"))
 
-        # Sends "Your Message" at 12PM and 18PM (Local Time)
-        scheduler.add_job(self.func, CronTrigger(hour="0, 12", minute="0", second="0"))
+            # Starting the scheduler
+            scheduler.start()
 
-        # Starting the scheduler
-        scheduler.start()
+    def update_react_message(self, guild_settings, guild_id):
+        role_display = ""
+        for emoji, role_name in guild_settings[guild_id]["roles"].items():
+            role_display += f"{emoji} - {role_name}\n"
+        if not role_display:
+            role_display = "(No Roles Exist)"
+
+        embedvar = discord.Embed(title="React to this message to get your roles!",
+                                 description="Click the corresponding emoji to receive your "
+                                             "role.\n" + role_display,
+                                 color=0x00ff00)
+        return embedvar
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if "happy birthday" in message.content:
             await message.channel.send("Happy birthday!! :cake: :birthday: :tada:")
+
+        # This sends or updates an embed message with a description of the roles.
+
+        if message.content.startswith('insert role reaction message'):
+            await message.delete()
+            guild_id = str(message.guild.id)
+            message_channel_id = message.channel.id
+            with open('guild_settings.json', 'r') as file:
+                guild_settings = json.loads(file.read())
+
+            embedvar = self.update_react_message(guild_settings, guild_id)
+            react_message = await message.channel.send(embed=embedvar)
+            for emoji in guild_settings[guild_id]["roles"]:
+                await react_message.add_reaction(emoji)
+
+            guild_settings[guild_id]["react_message_id"] = react_message.id
+            guild_settings[guild_id]["welcome_channel_id"] = message_channel_id
+
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps(guild_settings))
+
+        if message.content.startswith('insert member count'):
+            await message.delete()
+            guild_id = str(message.guild.id)
+            with open('guild_settings.json', 'r') as file:
+                guild_settings = json.loads(file.read())
+            guild = bot.get_guild(message.guild.id)
+            member_count = guild.member_count
+            embedvar = discord.Embed(title=f"Total member count: {member_count}", color=0x00ff00)
+            member_message = await message.channel.send(embed=embedvar)
+
+            guild_settings[guild_id]["member_count_message_id"] = member_message.id
+            guild_settings[guild_id]["member_count_channel_id"] = message.channel.id
+
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps(guild_settings))
+
+        if message.content.startswith('insert leave messages'):
+            await message.delete()
+            with open('guild_settings.json', 'r') as file:
+                guild_settings = json.loads(file.read())
+
+            guild_settings[str(message.guild.id)]["leave_message_channel_id"] = message.channel.id
+
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps(guild_settings))
+
+        if message.content.startswith('insert random facts'):
+            await message.delete()
+            with open('guild_settings.json', 'r') as file:
+                guild_settings = json.loads(file.read())
+
+            guild_settings[str(message.guild.id)]["random_facts_channel_id"] = message.channel.id
+
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps(guild_settings))
 
     bomb_data = {'US': {'AN-M30A1': [13, 17, 21, 25],
                         'AN-M57': [6, 8, 10, 12],
@@ -588,6 +712,154 @@ class MetaBot(commands.Cog):
                             }
                  }
 
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild):
+        if not os.path.isfile('guild_settings.json'):
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps({}))
+
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        if guild.id not in guild_settings:
+            guild_settings[guild.id] = {'roles': {}, 'random_facts': {}, "welcome_channel_id": None,
+                                        "react_message_id": None, "member_count_channel_id": None,
+                                        "member_count_message_id": None, "leave_message_channel_id": None,
+                                        "random_facts_channel_id": None, "random_facts_send_time": {}}
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps(guild_settings))
+
+    # Assign the role when the role is added as a reaction to the message.
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+
+        guild = bot.get_guild(payload.guild_id)
+        guild_id = str(payload.guild_id)
+        member = get(guild.members, id=payload.user_id)
+
+        if payload.channel_id == guild_settings[guild_id]["welcome_channel_id"] and payload.message_id == \
+                guild_settings[guild_id]["react_message_id"]:
+
+            if payload.emoji in guild_settings[guild_id]["roles"]:
+
+                role = get(payload.member.guild.roles, name=guild_settings[guild_id]["roles"][payload.emoji])
+
+                if role is not None:
+                    await payload.member.add_roles(role)
+                    print(f"Assigned {member} to {role}.")
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload):
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+
+        guild = bot.get_guild(payload.guild_id)
+        guild_id = str(payload.guild_id)
+        member = get(guild.members, id=payload.user_id)
+
+        if payload.channel_id == guild_settings[guild_id]["welcome_channel_id"] and payload.message_id == \
+                guild_settings[guild_id]["react_message_id"]:
+
+            if payload.emoji in guild_settings[guild_id]["roles"]:
+
+                role = get(payload.member.guild.roles, name=guild_settings[guild_id]["roles"][payload.emoji])
+
+                if role is not None:
+                    await payload.member.remove_roles(role)
+                    print(f"Removed {role} from {member}.")
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        now = datetime.datetime.now()
+        guild_id = str(member.guild.id)
+        guild = bot.get_guild(member.guild.id)
+        member_count = guild.member_count
+
+        embedvar = discord.Embed(title=f"Total member count: {member_count}", color=0x00ff00)
+        channel = bot.get_channel(guild_settings[guild_id]["welcome_channel_id"])
+        msg = await channel.fetch_message(guild_settings[guild_id]["member_count_message_id"])
+        await msg.edit(embed=embedvar)
+
+        print(f"{member.guild} member count has been updated (+1) on {now}.\n Total Member Count: {member_count}")
+        await member.create_dm()
+        await member.dm_channel.send(f"Welcome to {member.guild}! Be sure to read the rules and have fun here!")
+
+    @commands.Cog.listener()
+    async def on_member_remove(self, member):
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        now = datetime.datetime.now()
+        guild_id = str(member.guild.id)
+        guild = bot.get_guild(member.guild.id)
+        member_count = guild.member_count
+
+        embedvar = discord.Embed(title=f"Total member count: {member_count}", color=0x00ff00)
+        member_count_channel = bot.get_channel(guild_settings[guild_id]["member_count_channel_id"])
+        msg = await member_count_channel.fetch_message(guild_settings[guild_id]["member_count_message_id"])
+        await msg.edit(embed=embedvar)
+
+        print(f"{member.guild} member count has been updated (-1) on {now}.\n Total Member Count: {member_count}")
+        leave_message_channel = bot.get_channel(guild_settings[guild_id]["leave_message_channel_id"])
+        await leave_message_channel.send(f"{member} quit on the 1 yard line (left the server).")
+
+        with open('guild_settings.json', 'w') as file:
+            file.write(json.dumps(guild_settings))
+
+    @bot.command(name='addrole', aliases=['addroles'], help='Adds role to role reaction message.')
+    async def add_role(self, ctx, role_name, emoji):
+        await ctx.message.delete()
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        guild_id = str(ctx.guild.id)
+        if emoji in guild_settings[guild_id]["roles"]:
+            msg = await ctx.send(f"This emoji is already assign to another role. Please use a different one.")
+            await msg.delete(delay=10)
+            return
+        else:
+            guild_settings[guild_id]["roles"][emoji] = role_name
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps(guild_settings))
+
+        embedvar = self.update_react_message(guild_settings, guild_id)
+        channel = bot.get_channel(guild_settings[guild_id]["welcome_channel_id"])
+        msg = await channel.fetch_message(guild_settings[guild_id]["react_message_id"])
+        await msg.edit(embed=embedvar)
+        await msg.add_reaction(emoji)
+
+    @bot.command(name='removerole', help='Adds role to role reaction message.')
+    async def remove_role(self, ctx, role_name):
+        await ctx.message.delete()
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        guild_id = str(ctx.guild.id)
+        guild = bot.get_guild(ctx.guild.id)
+
+        emoji = None
+        for key, value in guild_settings[guild_id]["roles"].items():
+            if value == role_name:
+                emoji = key
+
+        if emoji not in guild_settings[guild_id]["roles"]:
+            # await ctx.send(f"{emoji} is already in the role reaction message.")
+            return
+        else:
+            guild_settings[guild_id]["roles"].pop(emoji)
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps(guild_settings))
+
+        embedvar = self.update_react_message(guild_settings, guild_id)
+        channel = bot.get_channel(guild_settings[guild_id]["welcome_channel_id"])
+        msg = await channel.fetch_message(guild_settings[guild_id]["react_message_id"])
+        await msg.edit(embed=embedvar)
+        for member in guild.members:
+            try:
+                await msg.remove_reaction(emoji, member)
+            except:
+                pass
+
     @bot.command(name='happybirthday', help='Tags a member with a bday message.')
     async def bday(self, ctx, member: discord.Member):
         await ctx.message.delete()
@@ -630,8 +902,8 @@ class MetaBot(commands.Cog):
         else:
             await ctx.send(f"Nope, sorry, you took too many guesses. The number I was thinking of was {number}")
 
-    @bot.command(name='bombs', help='Finds bombs for WarThunder to destroy targets. If bomb name has spaces just '
-                                    'smash it all together!')
+    @bot.command(name='bombs', aliases=['bomb'], help='Finds bombs for WarThunder to destroy targets. If bomb name '
+                                                       'has spaces just smash it all together!')
     async def bomb(self, ctx, country=None, bomb_type=None, battle_rating=None):
         try:
             if country is None:
@@ -714,6 +986,12 @@ bot.remove_command("rolldice")
 bot.remove_command("guess")
 bot.remove_command("bombs")
 bot.remove_command("happybirthday")
+bot.remove_command("addrole")
+bot.remove_command("removerole")
+bot.remove_command("addfact")
+bot.remove_command("removefact")
+bot.remove_command("listfacts")
+bot.remove_command("factsendtime")
 bot.add_cog(MetaBot(bot))
 
 print("Server Running.")
