@@ -515,6 +515,10 @@ class MetaBot(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print("Bot is ready.")
+        if not os.path.isfile('guild_settings.json'):
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps({}))
+
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
         for guild_id in guild_settings:
@@ -714,10 +718,6 @@ class MetaBot(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        if not os.path.isfile('guild_settings.json'):
-            with open('guild_settings.json', 'w') as file:
-                file.write(json.dumps({}))
-
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
         if guild.id not in guild_settings:
