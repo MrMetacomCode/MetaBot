@@ -724,7 +724,7 @@ class MetaBot(commands.Cog):
             guild_settings[guild.id] = {'roles': {}, 'random_facts': {}, "welcome_channel_id": None,
                                         "react_message_id": None, "member_count_channel_id": None,
                                         "member_count_message_id": None, "leave_message_channel_id": None,
-                                        "random_facts_channel_id": None, "random_facts_send_time": {}}
+                                        "random_facts_channel_id": None, "random_facts_send_time": {"hour": 12, "minute":0}}
             with open('guild_settings.json', 'w') as file:
                 file.write(json.dumps(guild_settings))
 
