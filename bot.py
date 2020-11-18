@@ -808,8 +808,9 @@ class MetaBot(commands.Cog):
             await msg.edit(embed=embedvar)
 
         print(f"{member.guild} member count has been updated (-1) on {now}.\n Total Member Count: {member_count}")
-        leave_message_channel = bot.get_channel(guild_settings[guild_id]["leave_message_channel_id"])
-        await leave_message_channel.send(f"{member} quit on the 1 yard line (left the server).")
+        if guild_settings[guild_id]["leave_message_channel_id"] is not None:
+            leave_message_channel = bot.get_channel(guild_settings[guild_id]["leave_message_channel_id"])
+            await leave_message_channel.send(f"{member} quit on the 1 yard line (left the server).")
 
         with open('guild_settings.json', 'w') as file:
             file.write(json.dumps(guild_settings))
