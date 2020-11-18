@@ -780,8 +780,9 @@ class MetaBot(commands.Cog):
 
         embedvar = discord.Embed(title=f"Total member count: {member_count}", color=0x00ff00)
         channel = bot.get_channel(guild_settings[guild_id]["welcome_channel_id"])
-        msg = await channel.fetch_message(guild_settings[guild_id]["member_count_message_id"])
-        await msg.edit(embed=embedvar)
+        if guild_settings[guild_id]["member_count_message_id"] is not None:
+            msg = await channel.fetch_message(guild_settings[guild_id]["member_count_message_id"])
+            await msg.edit(embed=embedvar)
 
         print(f"{member.guild} member count has been updated (+1) on {now}.\n Total Member Count: {member_count}")
         await member.create_dm()
@@ -798,8 +799,9 @@ class MetaBot(commands.Cog):
 
         embedvar = discord.Embed(title=f"Total member count: {member_count}", color=0x00ff00)
         member_count_channel = bot.get_channel(guild_settings[guild_id]["member_count_channel_id"])
-        msg = await member_count_channel.fetch_message(guild_settings[guild_id]["member_count_message_id"])
-        await msg.edit(embed=embedvar)
+        if guild_settings[guild_id]["member_count_message_id"] is not None:
+            msg = await member_count_channel.fetch_message(guild_settings[guild_id]["member_count_message_id"])
+            await msg.edit(embed=embedvar)
 
         print(f"{member.guild} member count has been updated (-1) on {now}.\n Total Member Count: {member_count}")
         leave_message_channel = bot.get_channel(guild_settings[guild_id]["leave_message_channel_id"])
