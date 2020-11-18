@@ -519,6 +519,10 @@ class MetaBot(commands.Cog):
             with open('guild_settings.json', 'w') as file:
                 file.write(json.dumps({}))
 
+        if not os.path.isfile('mainbank.json'):
+            with open('mainbank.json', 'w') as file:
+                file.write(json.dumps({}))
+
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
         for guild_id in guild_settings:
