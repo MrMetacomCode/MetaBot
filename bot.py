@@ -725,7 +725,7 @@ class MetaBot(commands.Cog):
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
         if guild.id not in guild_settings:
-            guild_settings[guild.id] = {'roles': {}, 'random_facts': {}, "welcome_channel_id": None,
+            guild_settings[guild.id] = {'roles': {}, 'random_facts': {}, "role_reaction_channel_id": None,
                                         "react_message_id": None, "member_count_channel_id": None,
                                         "member_count_message_id": None, "leave_message_channel_id": None,
                                         "random_facts_channel_id": None, "random_facts_send_time": {"hour": 12, "minute":0}}
@@ -783,7 +783,7 @@ class MetaBot(commands.Cog):
         member_count = guild.member_count
 
         embedvar = discord.Embed(title=f"Total member count: {member_count}", color=0x00ff00)
-        channel = bot.get_channel(guild_settings[guild_id]["welcome_channel_id"])
+        channel = bot.get_channel(guild_settings[guild_id]["member_count_channel_id"])
         if guild_settings[guild_id]["member_count_message_id"] is not None:
             msg = await channel.fetch_message(guild_settings[guild_id]["member_count_message_id"])
             await msg.edit(embed=embedvar)
