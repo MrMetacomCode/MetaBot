@@ -570,7 +570,7 @@ class MetaBot(commands.Cog):
                 await react_message.add_reaction(emoji)
 
             guild_settings[guild_id]["react_message_id"] = react_message.id
-            guild_settings[guild_id]["welcome_channel_id"] = message_channel_id
+            guild_settings[guild_id]["role_reaction_channel_id"] = message_channel_id
 
             with open('guild_settings.json', 'w') as file:
                 file.write(json.dumps(guild_settings))
@@ -742,7 +742,7 @@ class MetaBot(commands.Cog):
         guild_id = str(payload.guild_id)
         member = get(guild.members, id=payload.user_id)
 
-        if payload.channel_id == guild_settings[guild_id]["welcome_channel_id"] and payload.message_id == \
+        if payload.channel_id == guild_settings[guild_id]["role_reaction_channel_id"] and payload.message_id == \
                 guild_settings[guild_id]["react_message_id"]:
 
             if payload.emoji in guild_settings[guild_id]["roles"]:
@@ -762,7 +762,7 @@ class MetaBot(commands.Cog):
         guild_id = str(payload.guild_id)
         member = get(guild.members, id=payload.user_id)
 
-        if payload.channel_id == guild_settings[guild_id]["welcome_channel_id"] and payload.message_id == \
+        if payload.channel_id == guild_settings[guild_id]["role_reaction_channel_id"] and payload.message_id == \
                 guild_settings[guild_id]["react_message_id"]:
 
             if payload.emoji in guild_settings[guild_id]["roles"]:
@@ -833,7 +833,7 @@ class MetaBot(commands.Cog):
                 file.write(json.dumps(guild_settings))
 
         embedvar = self.update_react_message(guild_settings, guild_id)
-        channel = bot.get_channel(guild_settings[guild_id]["welcome_channel_id"])
+        channel = bot.get_channel(guild_settings[guild_id]["role_reaction_channel_id"])
         msg = await channel.fetch_message(guild_settings[guild_id]["react_message_id"])
         await msg.edit(embed=embedvar)
         await msg.add_reaction(emoji)
@@ -860,7 +860,7 @@ class MetaBot(commands.Cog):
                 file.write(json.dumps(guild_settings))
 
         embedvar = self.update_react_message(guild_settings, guild_id)
-        channel = bot.get_channel(guild_settings[guild_id]["welcome_channel_id"])
+        channel = bot.get_channel(guild_settings[guild_id]["role_reaction_channel_id"])
         msg = await channel.fetch_message(guild_settings[guild_id]["react_message_id"])
         await msg.edit(embed=embedvar)
         for member in guild.members:
