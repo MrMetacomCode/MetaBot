@@ -784,10 +784,10 @@ class MetaBot(commands.Cog):
 
         embedvar = discord.Embed(title=f"Total member count: {member_count}", color=0x00ff00)
         channel = bot.get_channel(guild_settings[guild_id]["welcome_channel_id"])
-        try:
+        if guild_settings[guild_id]["member_count_message_id"] is not None:
             msg = await channel.fetch_message(guild_settings[guild_id]["member_count_message_id"])
             await msg.edit(embed=embedvar)
-        except:
+        else:
             print("Member count message ID is invalid.")
 
         print(f"{member.guild} member count has been updated (+1) on {now}.\n Total Member Count: {member_count}")
