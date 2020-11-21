@@ -531,11 +531,12 @@ class MetaBot(commands.Cog):
             hour = guild_settings[guild_id]["random_facts_send_time"]["hour"]
             minute = guild_settings[guild_id]["random_facts_send_time"]["minute"]
 
-            # Sends "Your Message" at 12PM and 18PM (Local Time)
-            scheduler.add_job(self.func, CronTrigger(hour=hour, minute=minute, second="0"))
+            if guild_settings[guild_id]["random_facts"] is not None:
+                # Sends "Your Message" at 12PM and 18PM (Local Time)
+                scheduler.add_job(self.func, CronTrigger(hour=hour, minute=minute, second="0"))
 
-            # Starting the scheduler
-            scheduler.start()
+                # Starting the scheduler
+                scheduler.start()
 
     def update_react_message(self, guild_settings, guild_id):
         role_display = ""
@@ -727,8 +728,11 @@ class MetaBot(commands.Cog):
         if guild.id not in guild_settings:
             guild_settings[guild.id] = {'roles': {}, 'random_facts': {}, "role_reaction_channel_id": None,
                                         "react_message_id": None, "member_count_channel_id": None,
-                                        "member_count_message_id": None, "leave_message_channel_id": None,
-                                        "random_facts_channel_id": None, "random_facts_send_time": {"hour": 12, "minute":0}}
+                                        "member_count_message_id": None,
+                                        "leave_message_channel_id": None, "leave_message":
+                                            "quit on the 1 yard line (left the server).",
+                                        "random_facts_channel_id": None,
+                                        "random_facts_send_time": {"hour": 12, "minute": 0}}
             with open('guild_settings.json', 'w') as file:
                 file.write(json.dumps(guild_settings))
 
@@ -812,10 +816,25 @@ class MetaBot(commands.Cog):
         print(f"{member.guild} member count has been updated (-1) on {now}.\n Total Member Count: {member_count}")
         if guild_settings[guild_id]["leave_message_channel_id"] is not None:
             leave_message_channel = bot.get_channel(guild_settings[guild_id]["leave_message_channel_id"])
-            await leave_message_channel.send(f"{member} quit on the 1 yard line (left the server).")
+            leave_message = guild_settings[guild_id]["leave_message"]
+            await leave_message_channel.send(f"{member} {leave_message}")
 
         with open('guild_settings.json', 'w') as file:
             file.write(json.dumps(guild_settings))
+
+    @bot.command(name='leavemessage', aliases=['changeleavemessage'], help='Changes the message that comes after the '
+                                                                           'member name that left the server.')
+    async def change_leave_message(self, ctx, new_leave_message):
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        guild_id = str(ctx.guild.id)
+        if guild_settings[guild_id]["leave_message"] == new_leave_message:
+            await ctx.send("Please provide a different leave message.")
+        else:
+            guild_settings[guild_id]["leave_message"] = str(new_leave_message)
+            await ctx.send(f"Leave message changed to: '{new_leave_message}'")
+            with open('guild_settings.json', 'w') as file:
+                file.write(json.dumps(guild_settings))
 
     @bot.command(name='addrole', aliases=['addroles'], help='Adds role to role reaction message.')
     async def add_role(self, ctx, role_name, emoji):
@@ -1001,6 +1020,7 @@ bot.remove_command("addfact")
 bot.remove_command("removefact")
 bot.remove_command("listfacts")
 bot.remove_command("factsendtime")
+bot.remove_command("leavemessage")
 bot.add_cog(MetaBot(bot))
 
 print("Server Running.")
