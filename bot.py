@@ -433,6 +433,11 @@ class MetaBot(commands.Cog):
                 file.write(json.dumps(guild_settings))
             await ctx.send(f"Added {fact_name} to the random facts list.")
 
+    @add_fact.error
+    async def add_role_error(self, error, ctx):
+        if isinstance(error, MissingPermissions):
+            await ctx.send("You don't have the permissions to change the random facts.")
+
     @bot.command(name='removefact', aliases=['removefacts'], help='Adds fact to random facts list.', pass_context=True)
     @has_permissions(kick_members=True)
     async def remove_fact(self, ctx, fact_name):
@@ -453,6 +458,11 @@ class MetaBot(commands.Cog):
             await ctx.send(f"{fact_name} has been removed from the random facts list.")
             with open('guild_settings.json', 'w') as file:
                 file.write(json.dumps(guild_settings))
+
+    @remove_fact.error
+    async def add_role_error(self, error, ctx):
+        if isinstance(error, MissingPermissions):
+            await ctx.send("You don't have the permissions to change the random facts.")
 
     @bot.command(name='listfacts', aliases=['listfact', 'listrandomfact', 'listrandomfacts'], help='Lists all facts '
                                                                                                    'in random facts '
@@ -499,6 +509,11 @@ class MetaBot(commands.Cog):
             with open('guild_settings.json', 'w') as file:
                 file.write(json.dumps(guild_settings))
             await ctx.send(f"Changed fact send time to {hour}:{minute}.")
+
+    @fact_send_time.error
+    async def add_role_error(self, error, ctx):
+        if isinstance(error, MissingPermissions):
+            await ctx.send("You don't have the permissions to change the fact send time.")
 
     async def func(self):
         await bot.wait_until_ready()
@@ -752,11 +767,8 @@ class MetaBot(commands.Cog):
 
         if payload.channel_id == guild_settings[guild_id]["role_reaction_channel_id"] and payload.message_id == \
                 guild_settings[guild_id]["react_message_id"]:
-
-            if payload.emoji in guild_settings[guild_id]["roles"]:
-
-                role = get(payload.member.guild.roles, name=guild_settings[guild_id]["roles"][payload.emoji])
-
+            if str(payload.emoji) in guild_settings[guild_id]["roles"]:
+                role = get(payload.member.guild.roles, name=guild_settings[guild_id]["roles"][str(payload.emoji)])
                 if role is not None:
                     await payload.member.add_roles(role)
                     print(f"Assigned {member} to {role}.")
@@ -772,13 +784,10 @@ class MetaBot(commands.Cog):
 
         if payload.channel_id == guild_settings[guild_id]["role_reaction_channel_id"] and payload.message_id == \
                 guild_settings[guild_id]["react_message_id"]:
-
-            if payload.emoji in guild_settings[guild_id]["roles"]:
-
-                role = get(payload.member.guild.roles, name=guild_settings[guild_id]["roles"][payload.emoji])
-
+            if str(payload.emoji) in guild_settings[guild_id]["roles"]:
+                role = get(guild.roles, name=guild_settings[guild_id]["roles"][str(payload.emoji)])
                 if role is not None:
-                    await payload.member.remove_roles(role)
+                    await member.remove_roles(role)
                     print(f"Removed {role} from {member}.")
 
     @commands.Cog.listener()
@@ -841,6 +850,11 @@ class MetaBot(commands.Cog):
             with open('guild_settings.json', 'w') as file:
                 file.write(json.dumps(guild_settings))
 
+    @change_leave_message.error
+    async def add_role_error(self, error, ctx):
+        if isinstance(error, MissingPermissions):
+            await ctx.send("You don't have the permissions to change the leave message.")
+
     @bot.command(name='addrole', aliases=['addroles'], help='Adds role to role reaction message.', pass_context=True)
     @has_permissions(administrator=True)
     async def add_role(self, ctx, role_name, emoji):
@@ -862,6 +876,11 @@ class MetaBot(commands.Cog):
         msg = await channel.fetch_message(guild_settings[guild_id]["react_message_id"])
         await msg.edit(embed=embedvar)
         await msg.add_reaction(emoji)
+
+    @add_role.error
+    async def add_role_error(self, error, ctx):
+        if isinstance(error, MissingPermissions):
+            await ctx.send("You don't have the permissions to change the roles.")
 
     @bot.command(name='removerole', help='Adds role to role reaction message.', pass_context=True)
     @has_permissions(administrator=True)
@@ -894,6 +913,11 @@ class MetaBot(commands.Cog):
                 await msg.remove_reaction(emoji, member)
             except:
                 pass
+
+    @remove_role.error
+    async def remove_role_error(self, error, ctx):
+        if isinstance(error, MissingPermissions):
+            await ctx.send("You don't have the permissions to change the roles.")
 
     @bot.command(name='happybirthday', help='Tags a member with a bday message.')
     async def bday(self, ctx, member: discord.Member):
