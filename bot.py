@@ -5,6 +5,7 @@ import discord
 import datetime
 from discord import Intents
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from discord.ext.commands import has_permissions, MissingPermissions
 from apscheduler.triggers.cron import CronTrigger
 from discord.ext import commands
 from discord.utils import get
@@ -409,7 +410,8 @@ class MetaBot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @bot.command(name='addfact', aliases=['addfacts'], help='Adds fact to random facts list.')
+    @bot.command(name='addfact', aliases=['addfacts'], help='Adds fact to random facts list.', pass_context=True)
+    @has_permissions(kick_members=True)
     async def add_fact(self, ctx, fact_name=None, fact=None):
         fact_name = fact_name.upper()
         with open('guild_settings.json', 'r') as file:
@@ -431,7 +433,8 @@ class MetaBot(commands.Cog):
                 file.write(json.dumps(guild_settings))
             await ctx.send(f"Added {fact_name} to the random facts list.")
 
-    @bot.command(name='removefact', aliases=['removefacts'], help='Adds fact to random facts list.')
+    @bot.command(name='removefact', aliases=['removefacts'], help='Adds fact to random facts list.', pass_context=True)
+    @has_permissions(kick_members=True)
     async def remove_fact(self, ctx, fact_name):
         fact_name = fact_name.upper()
         with open('guild_settings.json', 'r') as file:
@@ -473,7 +476,8 @@ class MetaBot(commands.Cog):
     @bot.command(name='factsendtime', aliases=['factssendtime', 'facttime', 'factstime'], help='Set a time for a '
                                                                                                'random fact to send. '
                                                                                                'Hours is in 24h '
-                                                                                               'cycles.')
+                                                                                               'cycles.', pass_context=True)
+    @has_permissions(kick_members=True)
     async def fact_send_time(self, ctx, hour=None, minute=None):
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
@@ -823,7 +827,8 @@ class MetaBot(commands.Cog):
             file.write(json.dumps(guild_settings))
 
     @bot.command(name='leavemessage', aliases=['changeleavemessage'], help='Changes the message that comes after the '
-                                                                           'member name that left the server.')
+                                                                           'member name that left the server.', pass_context=True)
+    @has_permissions(kick_members=True)
     async def change_leave_message(self, ctx, new_leave_message):
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
@@ -836,7 +841,8 @@ class MetaBot(commands.Cog):
             with open('guild_settings.json', 'w') as file:
                 file.write(json.dumps(guild_settings))
 
-    @bot.command(name='addrole', aliases=['addroles'], help='Adds role to role reaction message.')
+    @bot.command(name='addrole', aliases=['addroles'], help='Adds role to role reaction message.', pass_context=True)
+    @has_permissions(administrator=True)
     async def add_role(self, ctx, role_name, emoji):
         await ctx.message.delete()
         with open('guild_settings.json', 'r') as file:
@@ -857,7 +863,8 @@ class MetaBot(commands.Cog):
         await msg.edit(embed=embedvar)
         await msg.add_reaction(emoji)
 
-    @bot.command(name='removerole', help='Adds role to role reaction message.')
+    @bot.command(name='removerole', help='Adds role to role reaction message.', pass_context=True)
+    @has_permissions(administrator=True)
     async def remove_role(self, ctx, role_name):
         await ctx.message.delete()
         with open('guild_settings.json', 'r') as file:
@@ -928,7 +935,7 @@ class MetaBot(commands.Cog):
                 await ctx.send(f"GG! You correctly guessed the number in {guessesTaken + 1} guesses!")
                 return
         else:
-            await ctx.send(f"Nope, sorry, you took too many guesses. The number I was thinking of was {number}")
+            await ctx.send(f"Sorry, you took too many guesses. The number I was thinking of was {number}")
 
     @bot.command(name='bombs', aliases=['bomb'], help='Finds bombs for WarThunder to destroy targets. If bomb name '
                                                        'has spaces just smash it all together!')
