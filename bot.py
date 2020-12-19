@@ -989,29 +989,36 @@ class MetaBot(commands.Cog):
 
             base_bombs_list = bomb_data[country.upper()][bomb_type.upper()]
 
+            if four_base is not None:
+                try:
+                    four_base = int(four_base)
+                except ValueError:
+                    four_base = str(four_base)
+                    four_base = four_base.upper()
+
             if 1.0 <= battle_rating <= 2.0:
-                if four_base == 4:
+                if four_base == 4 or four_base == "YES":
                     base_bombs_required = base_bombs_list[2]
                     airfield_bombs_required = int(base_bombs_required) * 5
                 else:
                     base_bombs_required = base_bombs_list[3]
                     airfield_bombs_required = int(base_bombs_required) * 5
             elif 2.3 <= battle_rating <= 3.3:
-                if four_base == 4:
+                if four_base == 4 or four_base == "YES":
                     base_bombs_required = base_bombs_list[4]
                     airfield_bombs_required = int(base_bombs_required) * 6
                 else:
                     base_bombs_required = base_bombs_list[5]
                     airfield_bombs_required = int(base_bombs_required) * 6
             elif 3.7 <= battle_rating <= 4.7:
-                if four_base == 4:
+                if four_base == 4 or four_base == "YES":
                     base_bombs_required = base_bombs_list[6]
                     airfield_bombs_required = int(base_bombs_required) * 8
                 else:
                     base_bombs_required = base_bombs_list[7]
                     airfield_bombs_required = int(base_bombs_required) * 8
             elif 5.0 <= battle_rating:
-                if four_base == 4:
+                if four_base == 4 or four_base == "YES":
                     base_bombs_required = base_bombs_list[8]
                     airfield_bombs_required = int(base_bombs_required) * 15
                 else:
