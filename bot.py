@@ -556,6 +556,10 @@ class MetaBot(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print("Bot is ready.")
+        print(f"Total servers: {len(bot.guilds)}")
+        print("Server names:")
+        for guild in bot.guilds:
+            print(guild.name)
         if not os.path.isfile('guild_settings.json'):
             with open('guild_settings.json', 'w') as file:
                 file.write(json.dumps({}))
