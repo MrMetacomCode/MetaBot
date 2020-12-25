@@ -747,7 +747,7 @@ class MetaBot(commands.Cog):
         if guild_settings[guild_id]["leave_message_channel_id"] is not None:
             leave_message_channel = bot.get_channel(guild_settings[guild_id]["leave_message_channel_id"])
             leave_message = guild_settings[guild_id]["leave_message"]
-            await leave_message_channel.send(f"{member} {leave_message}")
+            await leave_message_channel.send(f"{member.mention} {leave_message}")
 
         with open('guild_settings.json', 'w') as file:
             file.write(json.dumps(guild_settings))
