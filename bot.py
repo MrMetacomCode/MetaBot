@@ -996,43 +996,47 @@ class MetaBot(commands.Cog):
                     four_base = str(four_base)
                     four_base = four_base.upper()
 
-            if 1.0 <= battle_rating <= 2.0:
-                if four_base == 4 or four_base == "YES":
-                    base_bombs_required = base_bombs_list[2]
-                    airfield_bombs_required = int(base_bombs_required) * 5
+            try:
+                if 1.0 <= battle_rating <= 2.0:
+                    if four_base == 4 or four_base == "YES":
+                        base_bombs_required = base_bombs_list[2]
+                        airfield_bombs_required = int(base_bombs_required) * 5
+                    else:
+                        base_bombs_required = base_bombs_list[3]
+                        airfield_bombs_required = int(base_bombs_required) * 5
+                elif 2.3 <= battle_rating <= 3.3:
+                    if four_base == 4 or four_base == "YES":
+                        base_bombs_required = base_bombs_list[4]
+                        airfield_bombs_required = int(base_bombs_required) * 6
+                    else:
+                        base_bombs_required = base_bombs_list[5]
+                        airfield_bombs_required = int(base_bombs_required) * 6
+                elif 3.7 <= battle_rating <= 4.7:
+                    if four_base == 4 or four_base == "YES":
+                        base_bombs_required = base_bombs_list[6]
+                        airfield_bombs_required = int(base_bombs_required) * 8
+                    else:
+                        base_bombs_required = base_bombs_list[7]
+                        airfield_bombs_required = int(base_bombs_required) * 8
+                elif 5.0 <= battle_rating:
+                    if four_base == 4 or four_base == "YES":
+                        base_bombs_required = base_bombs_list[8]
+                        airfield_bombs_required = int(base_bombs_required) * 15
+                    else:
+                        base_bombs_required = base_bombs_list[9]
+                        airfield_bombs_required = int(base_bombs_required) * 15
                 else:
-                    base_bombs_required = base_bombs_list[3]
-                    airfield_bombs_required = int(base_bombs_required) * 5
-            elif 2.3 <= battle_rating <= 3.3:
-                if four_base == 4 or four_base == "YES":
-                    base_bombs_required = base_bombs_list[4]
-                    airfield_bombs_required = int(base_bombs_required) * 6
-                else:
-                    base_bombs_required = base_bombs_list[5]
-                    airfield_bombs_required = int(base_bombs_required) * 6
-            elif 3.7 <= battle_rating <= 4.7:
-                if four_base == 4 or four_base == "YES":
-                    base_bombs_required = base_bombs_list[6]
-                    airfield_bombs_required = int(base_bombs_required) * 8
-                else:
-                    base_bombs_required = base_bombs_list[7]
-                    airfield_bombs_required = int(base_bombs_required) * 8
-            elif 5.0 <= battle_rating:
-                if four_base == 4 or four_base == "YES":
-                    base_bombs_required = base_bombs_list[8]
-                    airfield_bombs_required = int(base_bombs_required) * 15
-                else:
-                    base_bombs_required = base_bombs_list[9]
-                    airfield_bombs_required = int(base_bombs_required) * 15
-            else:
+                    return
+            except ValueError:
+                await ctx.send(
+                    "This bomb data hasn't been added to the spreadsheet yet. If you are requesting a 4 base "
+                    "map, it may be too soon. Please refer to 3 base map data and multiply it by 2x for each "
+                    "base to get approximate 4 base data.")
                 return
 
-            if base_bombs_required == 0:
-                await ctx.send("This bomb data is unavailable.")
-            else:
-                await ctx.send(
-                    f"Bombs Required for Bases: {base_bombs_required} \nBombs Required for Airfield: "
-                    f"{airfield_bombs_required}")
+            await ctx.send(
+                f"Bombs Required for Bases: {base_bombs_required} \nBombs Required for Airfield: "
+                f"{airfield_bombs_required}")
 
         except Exception as e:
             await ctx.send("User error, try again.")
