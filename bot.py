@@ -882,15 +882,15 @@ class MetaBot(commands.Cog):
                                                       'bombs required to destroy a base and bombs required to destroy an '
                                                       'airfield.')
     async def bomb(self, ctx, country=None, bomb_type=None, battle_rating=None, four_base=None):
-        american_bombs = 'Bomb Table!A19:Q29'
-        german_bombs = 'Bomb Table!A33:Q39'
-        russian_bombs = 'Bomb Table!A43:Q54'
-        british_bombs = 'Bomb Table!A58:Q64'
-        japanese_bombs = 'Bomb Table!A68:Q81'
-        italian_bombs = 'Bomb Table!A85:Q91'
-        chinese_bombs = 'Bomb Table!A95:Q115'
-        french_bombs = 'Bomb Table!A119:Q125'
-        swedish_bombs = 'Bomb Table!A128:Q138'
+        american_bombs = 'Bomb Table!B19:Q29'
+        german_bombs = 'Bomb Table!B33:Q39'
+        russian_bombs = 'Bomb Table!B43:Q54'
+        british_bombs = 'Bomb Table!B58:Q64'
+        japanese_bombs = 'Bomb Table!B68:Q81'
+        italian_bombs = 'Bomb Table!B85:Q91'
+        chinese_bombs = 'Bomb Table!B95:Q115'
+        french_bombs = 'Bomb Table!B119:Q125'
+        swedish_bombs = 'Bomb Table!B128:Q138'
 
         bomb_data = {"US": {}, "GERMAN": {}, "RUSSIA": {}, "BRITAIN": {}, "JAPAN": {}, "ITALY": {}, "CHINA": {},
                      "FRANCE": {}, "SWEDEN": {}}
