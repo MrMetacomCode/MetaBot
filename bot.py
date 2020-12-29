@@ -537,6 +537,13 @@ class MetaBot(commands.Cog):
         if isinstance(error, MissingPermissions):
             await ctx.send("You don't have the permissions to change the fact send time.")
 
+    @bot.command(name='test')
+    async def testing(self, ctx):
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        for guild_id in guild_settings:
+            print(guild_id)
+
     async def func(self):
         await bot.wait_until_ready()
         with open('guild_settings.json', 'r') as file:
@@ -545,13 +552,14 @@ class MetaBot(commands.Cog):
             channel = bot.get_channel(guild_settings[guild_id]["random_facts_channel_id"])
             if guild_settings[guild_id]["random_facts"] is not None:
                 random_facts = []
-                for key in guild_settings[guild_id]["random_facts"].items():
-                    random_facts += key
-                random_messages = random_facts[::2]
-                random_choice = random.choice(random_messages)
+                for values in guild_settings[guild_id]["random_facts"].values():
+                    random_fact = values.split("\n")
+                    random_facts += random_fact
+                try:
+                    random_choice = random.choice(random_facts)
+                except IndexError:
+                    continue
                 await channel.send(random_choice)
-            else:
-                await channel.send(f"You need to add a fact first.")
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -568,20 +576,20 @@ class MetaBot(commands.Cog):
             with open('mainbank.json', 'w') as file:
                 file.write(json.dumps({}))
 
-        with open('guild_settings.json', 'r') as file:
-            guild_settings = json.loads(file.read())
-        for guild_id in guild_settings:
-            # Initializing scheduler
-            scheduler = AsyncIOScheduler()
-            hour = guild_settings[guild_id]["random_facts_send_time"]["hour"]
-            minute = guild_settings[guild_id]["random_facts_send_time"]["minute"]
-
-            if guild_settings[guild_id]["random_facts"] is not None:
-                # Sends "Your Message" at 12PM and 18PM (Local Time)
-                scheduler.add_job(self.func, CronTrigger(hour=hour, minute=minute, second="0"))
-
-                # Starting the scheduler
-                scheduler.start()
+        # with open('guild_settings.json', 'r') as file:
+        #     guild_settings = json.loads(file.read())
+        # for guild_id in guild_settings:
+        #     # Initializing scheduler
+        #     scheduler = AsyncIOScheduler()
+        #     hour = guild_settings[guild_id]["random_facts_send_time"]["hour"]
+        #     minute = guild_settings[guild_id]["random_facts_send_time"]["minute"]
+        #
+        #     if guild_settings[guild_id]["random_facts"] is not None:
+        #         # Sends "Your Message" at 12PM and 18PM (Local Time)
+        #         scheduler.add_job(self.func, CronTrigger(hour=hour, minute=minute, second="0"))
+        #
+        #         # Starting the scheduler
+        #         scheduler.start()
 
     def update_react_message(self, guild_settings, guild_id):
         role_display = ""
@@ -1054,6 +1062,7 @@ bot.remove_command("removefact")
 bot.remove_command("listfacts")
 bot.remove_command("factsendtime")
 bot.remove_command("leavemessage")
+bot.remove_command("test")
 bot.add_cog(MetaBot(bot))
 
 print("Server Running.")
