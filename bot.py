@@ -508,7 +508,8 @@ class MetaBot(commands.Cog):
     @bot.command(name='factsendtime', aliases=['factssendtime', 'facttime', 'factstime'], help='Set a time for a '
                                                                                                'random fact to send. '
                                                                                                'Hours is in 24h '
-                                                                                               'cycles.', pass_context=True)
+                                                                                               'cycles.',
+                 pass_context=True)
     @has_permissions(kick_members=True)
     async def fact_send_time(self, ctx, hour=None, minute=None):
         with open('guild_settings.json', 'r') as file:
@@ -761,7 +762,8 @@ class MetaBot(commands.Cog):
             file.write(json.dumps(guild_settings))
 
     @bot.command(name='leavemessage', aliases=['changeleavemessage'], help='Changes the message that comes after the '
-                                                                           'member name that left the server.', pass_context=True)
+                                                                           'member name that left the server.',
+                 pass_context=True)
     @has_permissions(kick_members=True)
     async def change_leave_message(self, ctx, new_leave_message):
         with open('guild_settings.json', 'r') as file:
@@ -887,9 +889,9 @@ class MetaBot(commands.Cog):
             await ctx.send(f"Sorry, you took too many guesses. The number I was thinking of was {number}")
 
     @bot.command(name='bombs', aliases=['bomb'], help='For War Thunder game. Finds bombs from spreadsheet and returns '
-                                                      'bombs required to destroy a base and bombs required to destroy an '
-                                                      'airfield.')
-    async def bomb(self, ctx, country=None, bomb_type=None, battle_rating=None, four_base=None):
+                                                      'bombs required to destroy a base and bombs required to destroy '
+                                                      'an airfield.')
+    async def bomb(self, ctx):
         american_bombs = 'Bomb Table!B19:Q29'
         german_bombs = 'Bomb Table!B33:Q39'
         russian_bombs = 'Bomb Table!B43:Q54'
@@ -947,93 +949,201 @@ class MetaBot(commands.Cog):
         for items in swedish_list:
             bomb_data["SWEDEN"][items[0]] = items[1:]
 
+        def embed_maker(thing_list):
+            list_number = 1
+            embed = ""
+            for thing in thing_list:
+                item = f"{list_number} = {thing}\n"
+                embed += item
+                list_number += 1
+            return embed
+
         try:
-            if country is None:
-                await ctx.send("Country is missing.")
+            countries = []
+            for country_number in bomb_data:
+                countries.append(country_number)
 
-            if bomb_type is None:
-                await ctx.send("Bomb type is missing.")
+            countries_embed = embed_maker(countries)
 
-            if battle_rating is None:
-                await ctx.send("Battle rating is missing.")
+            embedvar = discord.Embed(title="Select a country to view bombs from:",
+                                     description=countries_embed,
+                                     color=0x00ff00)
+            await ctx.send(embed=embedvar)
+
+            def check(message):
+                return message.author == ctx.author and message.channel == ctx.channel
+
+            try:
+                country_number = int((await bot.wait_for('message', check=check)).content)
+            except ValueError:
+                await ctx.send("Please use a number.")
                 return
 
-            country = country.upper()
-            if country in ['AMERICA', 'AMERICAN', 'USA', 'United_States_of_America']:
-                country = 'US'
-            elif country in ['DE', 'GERMANY', 'NAZI', 'FATHERLAND']:
-                country = 'GERMAN'
-            elif country in ['RUSSIA', 'RUSSIAN', 'SOVIET', 'USSR', 'RU']:
-                country = 'RUSSIA'
-            elif country in ['BRITISH', 'UK']:
-                country = 'BRITAIN'
-            elif country in ['JP', 'JAPANESE']:
-                country = 'JAPAN'
-            elif country in ['ITALIAN', 'IT']:
-                country = 'ITALY'
-            elif country in ['CHINESE', 'CN']:
-                country = 'CHINA'
-            elif country in ['FRENCH', 'FR']:
-                country = 'FRANCE'
-            elif country in ['SWEDISH']:
-                country = 'SWEDEN'
-            if country not in bomb_data:
-                await ctx.send("Country is invalid.")
+            if country_number == 1:
+                country = countries[0]
+                bombs = []
+                for bomb_ in bomb_data[countries[0]]:
+                    bombs.append(bomb_)
 
-            bomb_type = bomb_type.upper()
-            bomb_type_list = []
-            for country_ in bomb_data.values():
-                for bomb_type_ in country_:
-                    bomb_type_list.append(bomb_type_)
-            if bomb_type not in bomb_type_list:
-                await ctx.send("Bomb type is invalid.")
+                american_bombs_embed = embed_maker(bombs)
+                embedvar = discord.Embed(title=f"Select a bomb from {country}:",
+                                         description=american_bombs_embed,
+                                         color=0x00ff00)
+                await ctx.send(embed=embedvar)
+            elif country_number == 2:
+                country = countries[1]
+                bombs = []
+                for bomb_ in bomb_data[countries[1]]:
+                    bombs.append(bomb_)
+
+                german_bombs_embed = embed_maker(bombs)
+                embedvar = discord.Embed(title=f"Select a bomb from {countries[1]}:",
+                                         description=german_bombs_embed,
+                                         color=0x00ff00)
+                await ctx.send(embed=embedvar)
+            elif country_number == 3:
+                country = countries[2]
+                bombs = []
+                for bomb_ in bomb_data[countries[2]]:
+                    bombs.append(bomb_)
+
+                russian_bombs_embed = embed_maker(bombs)
+                embedvar = discord.Embed(title=f"Select a bomb from {countries[2]}:",
+                                         description=russian_bombs_embed,
+                                         color=0x00ff00)
+                await ctx.send(embed=embedvar)
+            elif country_number == 4:
+                country = countries[3]
+                bombs = []
+                for bomb_ in bomb_data[countries[3]]:
+                    bombs.append(bomb_)
+
+                british_bombs_embed = embed_maker(bombs)
+                embedvar = discord.Embed(title=f"Select a bomb from {countries[3]}:",
+                                         description=british_bombs_embed,
+                                         color=0x00ff00)
+                await ctx.send(embed=embedvar)
+            elif country_number == 5:
+                country = countries[4]
+                bombs = []
+                for bomb_ in bomb_data[countries[4]]:
+                    bombs.append(bomb_)
+
+                japanese_bombs_embed = embed_maker(bombs)
+                embedvar = discord.Embed(title=f"Select a bomb from {countries[4]}:",
+                                         description=japanese_bombs_embed,
+                                         color=0x00ff00)
+                await ctx.send(embed=embedvar)
+            elif country_number == 6:
+                country = countries[5]
+                bombs = []
+                for bomb_ in bomb_data[countries[5]]:
+                    bombs.append(bomb_)
+
+                italian_bombs_embed = embed_maker(bombs)
+                embedvar = discord.Embed(title=f"Select a bomb from {countries[5]}:",
+                                         description=italian_bombs_embed,
+                                         color=0x00ff00)
+                await ctx.send(embed=embedvar)
+            elif country_number == 7:
+                country = countries[6]
+                bombs = []
+                for bomb_ in bomb_data[countries[6]]:
+                    bombs.append(bomb_)
+
+                chinese_bombs_embed = embed_maker(bombs)
+                embedvar = discord.Embed(title=f"Select a bomb from {countries[6]}:",
+                                         description=chinese_bombs_embed,
+                                         color=0x00ff00)
+                await ctx.send(embed=embedvar)
+            elif country_number == 8:
+                country = countries[7]
+                bombs = []
+                for bomb_ in bomb_data[countries[7]]:
+                    bombs.append(bomb_)
+
+                france_bombs_embed = embed_maker(bombs)
+                embedvar = discord.Embed(title=f"Select a bomb from {countries[7]}:",
+                                         description=france_bombs_embed,
+                                         color=0x00ff00)
+                await ctx.send(embed=embedvar)
+            elif country_number == 9:
+                country = countries[8]
+                bombs = []
+                for bomb_ in bomb_data[countries[8]]:
+                    bombs.append(bomb_)
+
+                sweden_bombs_embed = embed_maker(bombs)
+                embedvar = discord.Embed(title=f"Select a bomb from {countries[8]}:",
+                                         description=sweden_bombs_embed,
+                                         color=0x00ff00)
+                await ctx.send(embed=embedvar)
+            else:
+                await ctx.send("Couldn't find that country's bombs.")
                 return
 
             try:
-                battle_rating = float(battle_rating)
+                bomb_number = int((await bot.wait_for('message', check=check)).content)
             except ValueError:
-                await ctx.send("Battle rating is invalid.")
+                await ctx.send("Please use a number.")
                 return
 
-            base_bombs_list = bomb_data[country.upper()][bomb_type.upper()]
+            for x in range(len(bomb_data[country])):
+                if bomb_number == x:
+                    bomb_type = bombs[x - 1]
 
-            if four_base is not None:
-                try:
-                    four_base = int(four_base)
-                except ValueError:
-                    four_base = str(four_base)
-                    four_base = four_base.upper()
+            await ctx.send("Enter battle rating:")
+            try:
+                battle_rating = float((await bot.wait_for('message', check=check)).content)
+            except ValueError:
+                await ctx.send("Please use a decimal number.")
+                return
 
+            await ctx.send("Is this a four base map? Enter 'YES' or 'NO'")
+            try:
+                four_base = str((await bot.wait_for('message', check=check)).content)
+            except ValueError:
+                await ctx.send("Please enter 'YES' or 'NO'.")
+                return
+
+            base_bombs_list = bomb_data[country][bomb_type]
+
+            try:
+                four_base = int(four_base)
+            except ValueError:
+                four_base = str(four_base)
+                four_base = four_base.upper()
             try:
                 if 1.0 <= battle_rating <= 2.0:
-                    if four_base == 4 or four_base == "YES":
+                    if four_base == "YES":
                         base_bombs_required = base_bombs_list[2]
                         airfield_bombs_required = int(base_bombs_required) * 5
                     else:
                         base_bombs_required = base_bombs_list[3]
                         airfield_bombs_required = int(base_bombs_required) * 5
                 elif 2.3 <= battle_rating <= 3.3:
-                    if four_base == 4 or four_base == "YES":
+                    if four_base == "YES":
                         base_bombs_required = base_bombs_list[4]
                         airfield_bombs_required = int(base_bombs_required) * 6
                     else:
                         base_bombs_required = base_bombs_list[5]
                         airfield_bombs_required = int(base_bombs_required) * 6
                 elif 3.7 <= battle_rating <= 4.7:
-                    if four_base == 4 or four_base == "YES":
+                    if four_base == "YES":
                         base_bombs_required = base_bombs_list[6]
                         airfield_bombs_required = int(base_bombs_required) * 8
                     else:
                         base_bombs_required = base_bombs_list[7]
                         airfield_bombs_required = int(base_bombs_required) * 8
                 elif 5.0 <= battle_rating:
-                    if four_base == 4 or four_base == "YES":
+                    if four_base == "YES":
                         base_bombs_required = base_bombs_list[8]
                         airfield_bombs_required = int(base_bombs_required) * 15
                     else:
                         base_bombs_required = base_bombs_list[9]
                         airfield_bombs_required = int(base_bombs_required) * 15
                 else:
+                    await ctx.send("That battle rating doesn't exist.")
                     return
             except ValueError:
                 await ctx.send(
