@@ -1088,7 +1088,7 @@ class MetaBot(commands.Cog):
                 await ctx.send("Please use a number.")
                 return
 
-            for x in range(len(bomb_data[country])):
+            for x in range(len(bomb_data[country]) + 1):
                 if bomb_number == x:
                     bomb_type = bombs[x - 1]
 
