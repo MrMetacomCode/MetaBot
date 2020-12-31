@@ -577,20 +577,26 @@ class MetaBot(commands.Cog):
             with open('mainbank.json', 'w') as file:
                 file.write(json.dumps({}))
 
-        # with open('guild_settings.json', 'r') as file:
-        #     guild_settings = json.loads(file.read())
-        # for guild_id in guild_settings:
-        #     # Initializing scheduler
-        #     scheduler = AsyncIOScheduler()
-        #     hour = guild_settings[guild_id]["random_facts_send_time"]["hour"]
-        #     minute = guild_settings[guild_id]["random_facts_send_time"]["minute"]
-        #
-        #     if guild_settings[guild_id]["random_facts"] is not None:
-        #         # Sends "Your Message" at 12PM and 18PM (Local Time)
-        #         scheduler.add_job(self.func, CronTrigger(hour=hour, minute=minute, second="0"))
-        #
-        #         # Starting the scheduler
-        #         scheduler.start()
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        # Initializing scheduler
+        scheduler = AsyncIOScheduler()
+        hour = 12
+        minute = 0
+        for guild in bot.guilds:
+            guild_id = str(guild.id)
+            try:
+                hour = guild_settings[str(guild_id)]["random_facts_send_time"]["hour"]
+                minute = guild_settings[str(guild_id)]["random_facts_send_time"]["minute"]
+            except KeyError:
+                print(f"{guild_id} has a KeyError with the random fact feature.")
+                continue
+
+        # Sends "Your Message" at 12PM and 18PM (Local Time)
+        scheduler.add_job(self.func, CronTrigger(hour=hour, minute=minute, second="0"))
+
+        # Starting the scheduler
+        scheduler.start()
 
     def update_react_message(self, guild_settings, guild_id):
         role_display = ""
