@@ -530,7 +530,6 @@ class MetaBot(commands.Cog):
         try:
             facts_page = embed_description[5]
             facts_page = int(facts_page)
-            print(facts_page)
         except ValueError:
             facts_page = 1
         if embed_title == "Here are the random facts that will send at your given time periods:" and user.id != 753479351139303484:
@@ -539,7 +538,6 @@ class MetaBot(commands.Cog):
                 facts_page -= 1
             if str(reaction) == "➡️" and facts_page <= len(facts[::8]) - 1:
                 facts_page += 1
-        print(f"{str(reaction)}, {facts_page}")
 
         max_iteration = 8 * facts_page
         min_iteration = 8 * (facts_page - 1)
