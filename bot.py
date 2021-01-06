@@ -490,20 +490,68 @@ class MetaBot(commands.Cog):
                                                                                                    'in random facts '
                                                                                                    'list.')
     async def list_facts(self, ctx):
+        #This is the first part of listfacts. The rest is in on_reaction_add below this command.
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
         guild_id = str(ctx.guild.id)
 
         facts_display = ""
-        for fact, fact_name in guild_settings[guild_id]["random_facts"].items():
-            facts_display += f"{fact_name} - {fact}\n"
-        if not facts_display:
-            facts_display = "(No Facts Exist)"
+        facts = []
+        for fact_name, fact in guild_settings[guild_id]["random_facts"].items():
+            item = f"{fact_name} - {fact}"
+            facts.append(item)
 
-        embedvar = discord.Embed(title="Here are the random facts that will send at your given time periods:",
-                                 description="\n" + facts_display,
+        for fact in facts[:8]:
+            facts_display += f"{fact}\n\n"
+
+        embedvar = discord.Embed(title=f"Here are the random facts that will send at your given time "
+                                       f"periods:",
+                                 description="Page 1\n" + facts_display,
                                  color=0x00ff00)
-        await ctx.send(embed=embedvar)
+        msg = await ctx.send(embed=embedvar)
+
+        for emoji in ('⬅️', '➡️'):
+            await msg.add_reaction(emoji)
+
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction, user):
+        ### Second part of list facts ###
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        guild_id = str(reaction.message.guild.id)
+        facts_display = ""
+        facts = []
+        for fact_name, fact in guild_settings[guild_id]["random_facts"].items():
+            item = f"{fact_name} - {fact}"
+            facts.append(item)
+        msg = reaction.message
+        embed_title = msg.embeds[0].title
+        embed_description = msg.embeds[0].description
+        try:
+            facts_page = embed_description[5]
+            facts_page = int(facts_page)
+            print(facts_page)
+        except ValueError:
+            facts_page = 1
+        if embed_title == "Here are the random facts that will send at your given time periods:" and user.id != 753479351139303484:
+            await msg.remove_reaction(reaction, user)
+            if str(reaction) == "⬅️" and facts_page >= 2:
+                facts_page -= 1
+            if str(reaction) == "➡️" and facts_page <= len(facts[::8]) - 1:
+                facts_page += 1
+        print(f"{str(reaction)}, {facts_page}")
+
+        max_iteration = 8 * facts_page
+        min_iteration = 8 * (facts_page - 1)
+        fact_list = facts[min_iteration:max_iteration]
+        for fact in fact_list:
+            facts_display += f"{fact}\n\n"
+        embedvar = discord.Embed(title=f"Here are the random facts that will send at your given time "
+                                       f"periods:",
+                                 description=f"Page {facts_page}\n" + facts_display,
+                                 color=0x00ff00)
+        await msg.edit(embed=embedvar)
+        ### End of second part of list facts ###
 
     @bot.command(name='factsendtime', aliases=['factssendtime', 'facttime', 'factstime'], help='Set a time for a '
                                                                                                'random fact to send. '
@@ -589,7 +637,8 @@ class MetaBot(commands.Cog):
                 hour = guild_settings[str(guild_id)]["random_facts_send_time"]["hour"]
                 minute = guild_settings[str(guild_id)]["random_facts_send_time"]["minute"]
             except KeyError:
-                print(f"{guild_id} has a KeyError with the random fact feature.")
+                hour = 12
+                minute = 0
                 continue
 
         # Sends "Your Message" at 12PM and 18PM (Local Time)
