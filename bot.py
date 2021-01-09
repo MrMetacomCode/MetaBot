@@ -432,6 +432,35 @@ class MetaBot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @bot.command(name='jail', help='Jails tagged user for specified amount of time.', pass_context=True)
+    @has_permissions(kick_members=True)
+    async def jail_member(self, ctx, member: discord.Member, reason="Existing.", jail_time=None):
+        now = datetime.datetime.now()
+        guild = ctx.guild
+        channel = bot.get_channel(773397004868649010)
+        roles = []
+        for role in member.roles:
+            role = str(role)
+            roles.append(role)
+        roles = roles[1:]
+        roles_display = ""
+        if len(roles) >= 3:
+            for role in roles[:-1]:
+                roles_display += f"{role}, "
+            roles_display += f"and {roles[-1]}."
+        elif len(roles) == 2:
+            roles_display += f"{roles[0]} and {roles[1]}."
+        else:
+            roles_display += f"{roles[0]}."
+        display = f"{member.mention} has been jailed on {now} for the following:\n{reason}\nYou will be released in: " \
+                  f"{jail_time}\nSaved roles: {roles_display} "
+        await channel.send(display)
+        for role in roles:
+            role = get(guild.roles, name=role)
+            await member.remove_roles(role)
+        jail_role = get(guild.roles, name="JAIL")
+        await member.add_roles(jail_role)
+
     @bot.command(name='addfact', aliases=['addfacts'], help='Adds fact to random facts list.', pass_context=True)
     @has_permissions(kick_members=True)
     async def add_fact(self, ctx, fact_name=None, fact=None):
@@ -612,9 +641,9 @@ class MetaBot(commands.Cog):
     async def on_ready(self):
         print("Bot is ready.")
         print(f"Total servers: {len(bot.guilds)}")
-        print("Server names:")
-        for guild in bot.guilds:
-            print(guild.name)
+        #print("Server names:")
+        #for guild in bot.guilds:
+        #    print(guild.name)
         if not os.path.isfile('guild_settings.json'):
             with open('guild_settings.json', 'w') as file:
                 file.write(json.dumps({}))
@@ -1226,6 +1255,8 @@ bot.remove_command("listfacts")
 bot.remove_command("factsendtime")
 bot.remove_command("leavemessage")
 bot.remove_command("test")
+bot.remove_command("jail")
+bot.remove_command("unjail")
 bot.add_cog(MetaBot(bot))
 
 print("Server Running.")
