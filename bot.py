@@ -21,7 +21,7 @@ from discord.utils import get
 # logger = logging.getLogger(__name__)
 # logger.debug('test')
 
-
+# TESTINGBOT_DISCORD_TOKEN
 TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
 SPREADSHEET_ID = '1S-AIIx2EQrLX8RHJr_AVIGPsQjehEdfUmbwKyinOs_I'
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -519,7 +519,7 @@ class MetaBot(commands.Cog):
                                                                                                    'in random facts '
                                                                                                    'list.')
     async def list_facts(self, ctx):
-        #This is the first part of listfacts. The rest is in on_reaction_add below this command.
+        # This is the first part of listfacts. The rest is in on_reaction_add below this command.
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
         guild_id = str(ctx.guild.id)
@@ -541,6 +541,35 @@ class MetaBot(commands.Cog):
 
         for emoji in ('⬅️', '➡️'):
             await msg.add_reaction(emoji)
+
+    @commands.Cog.listener()
+    async def on_member_update(self, before, after):
+        # Get the guild ID.
+        guild_id = after.guild.id
+        # Get the discord name of the author from their ID.
+        author = bot.get_user(after.id)
+        # Get the channel you want your message to send in.
+        channel = bot.get_channel(740369106880036965)
+        # This makes sure the message only sends once. The update is processed once for each guild the bot is in.
+        if guild_id == 593941391110045697:
+            after_activity_type = None
+            stream_url = None
+            # Get the URL of the stream and the activity (hopefully streaming) that they're doing.
+            try:
+                after_activity_type = after.activity.type
+                stream_url = after.activity.url
+            except:
+                pass
+            # Make sure they're streaming.
+            if after_activity_type is discord.ActivityType.streaming:
+                # Get the website they're streaming on and the name of the user.
+                stream_url_split = stream_url.split(".")
+                streaming_service = stream_url_split[1]
+                streaming_service = streaming_service.capitalize()
+                author_string = str(author)
+                author_full_id = author_string.split("#")
+                author_name = author_full_id[0]
+                await channel.send(f":red_circle: **LIVE**\n{author_name} is now streaming on {streaming_service}!\n{stream_url}")
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
@@ -641,8 +670,8 @@ class MetaBot(commands.Cog):
     async def on_ready(self):
         print("Bot is ready.")
         print(f"Total servers: {len(bot.guilds)}")
-        #print("Server names:")
-        #for guild in bot.guilds:
+        # print("Server names:")
+        # for guild in bot.guilds:
         #    print(guild.name)
         if not os.path.isfile('guild_settings.json'):
             with open('guild_settings.json', 'w') as file:
