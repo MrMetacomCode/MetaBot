@@ -21,8 +21,8 @@ from discord.utils import get
 # logger = logging.getLogger(__name__)
 # logger.debug('test')
 
-# TESTINGBOT_DISCORD_TOKEN
-TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
+# METABOT_DISCORD_TOKEN
+TOKEN = os.getenv('TESTINGBOT_DISCORD_TOKEN')
 SPREADSHEET_ID = '1S-AIIx2EQrLX8RHJr_AVIGPsQjehEdfUmbwKyinOs_I'
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
@@ -498,7 +498,7 @@ class MetaBot(commands.Cog):
             roles_display += f"{roles[0]} and {roles[1]}."
         else:
             roles_display += f"{roles[0]}."
-        jail_ticket_embed = discord.Embed(title=f"{member.mention} has been jailed on {now}",
+        jail_ticket_embed = discord.Embed(title=f"{member} has been jailed on {now}",
                                           description=f"Reason: {reason}\nYou will be released in: {jail_time} {jail_time_type}",
                                           color=0x00ff00)
         await channel.send(embed=jail_ticket_embed)
@@ -507,7 +507,7 @@ class MetaBot(commands.Cog):
             await member.remove_roles(role)
         jail_role = get(guild.roles, name="JAIL")
         await member.add_roles(jail_role)
-        guild_settings[593941391110045697]["jail_tickets"] = {str(member): {"reason": reason, "time": now,
+        guild_settings["593941391110045697"]["jail_tickets"] = {str(member): {"reason": reason, "time": str(now),
                                                                             "sentence_length": jail_time,
                                                                             "saved_roles": roles}}
 
@@ -521,7 +521,7 @@ class MetaBot(commands.Cog):
         guild = bot.get_guild(593941391110045697)
 
         inmate_roles = []
-        for role in guild_settings[593941391110045697]["jail_tickets"][inmate]["saved_roles"]:
+        for role in guild_settings["593941391110045697"]["jail_tickets"][inmate]["saved_roles"]:
             role = str(role)
             inmate_roles.append(role)
 
@@ -531,6 +531,7 @@ class MetaBot(commands.Cog):
         for role in inmate_roles:
             role = get(guild.roles, name=role)
             await member.add_roles(role)
+        guild_settings["593941391110045697"]["jail_tickets"][inmate].pop()
 
     @bot.command(name='addfact', aliases=['addfacts'], help='Adds fact to random facts list.', pass_context=True)
     @has_permissions(kick_members=True)
@@ -759,35 +760,38 @@ class MetaBot(commands.Cog):
 
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
-        for inmate in guild_settings[593941391110045697]["jail_tickets"]:
-            new_now = ""
-            sentence_length = guild_settings[593941391110045697]["jail_tickets"][inmate]["sentence_length"]
-            when_jailed = str(guild_settings[593941391110045697]["jail_tickets"][inmate]["time"])
-            when_jailed_items = when_jailed.split(" ")
-            when_jailed_date = when_jailed_items[0]
-            when_jailed_time = when_jailed_items[1]
-            date_split = when_jailed_date.split("-")
-            if sentence_length == 24:
-                new_day = int(date_split[2]) + 1
-                new_date = f"{date_split[0]}-{date_split[1]}-{new_day}"
-                new_date = str(new_date)
-                new_now = f"{new_date} {when_jailed_time}"
-                new_now = str(new_now)
-            elif sentence_length == 7:
-                new_day = int(date_split[2]) + 7
-                new_date = f"{date_split[0]}-{date_split[1]}-{new_day}"
-                new_date = str(new_date)
-                new_now = f"{new_date} {when_jailed_time}"
-                new_now = str(new_now)
-            elif sentence_length == 1:
-                new_month = int(date_split[1]) + 1
-                new_date = f"{date_split[0]}-{new_month}-{date_split[2]}"
-                new_date = str(new_date)
-                new_now = f"{new_date} {when_jailed_time}"
-                new_now = str(new_now)
+        try:
+            for inmate in guild_settings["593941391110045697"]["jail_tickets"]:
+                new_now = ""
+                sentence_length = guild_settings["593941391110045697"]["jail_tickets"][inmate]["sentence_length"]
+                when_jailed = str(guild_settings["593941391110045697"]["jail_tickets"][inmate]["time"])
+                when_jailed_items = when_jailed.split(" ")
+                when_jailed_date = when_jailed_items[0]
+                when_jailed_time = when_jailed_items[1]
+                date_split = when_jailed_date.split("-")
+                if sentence_length == 24:
+                    new_day = int(date_split[2]) + 1
+                    new_date = f"{date_split[0]}-{date_split[1]}-{new_day}"
+                    new_date = str(new_date)
+                    new_now = f"{new_date} {when_jailed_time}"
+                    new_now = str(new_now)
+                elif sentence_length == 7:
+                    new_day = int(date_split[2]) + 7
+                    new_date = f"{date_split[0]}-{date_split[1]}-{new_day}"
+                    new_date = str(new_date)
+                    new_now = f"{new_date} {when_jailed_time}"
+                    new_now = str(new_now)
+                elif sentence_length == 1:
+                    new_month = int(date_split[1]) + 1
+                    new_date = f"{date_split[0]}-{new_month}-{date_split[2]}"
+                    new_date = str(new_date)
+                    new_now = f"{new_date} {when_jailed_time}"
+                    new_now = str(new_now)
 
-            if new_now == str(now):
-                scheduler.add_job(self.unjail(inmate))
+                if new_now == str(now):
+                    scheduler.add_job(self.unjail(inmate))
+        except KeyError:
+            pass
 
         hour = 12
         minute = 0
@@ -888,7 +892,7 @@ class MetaBot(commands.Cog):
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
         if guild.id not in guild_settings:
-            guild_settings[guild.id] = {'roles': {}, 'random_facts': {}, "role_reaction_channel_id": None,
+            guild_settings[guild.id] = {"roles": {}, "random_facts": {}, "role_reaction_channel_id": None,
                                         "react_message_id": None, "member_count_channel_id": None,
                                         "member_count_message_id": None,
                                         "leave_message_channel_id": None, "leave_message":
