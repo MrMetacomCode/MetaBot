@@ -432,9 +432,55 @@ class MetaBot(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    def embed_maker(self, thing_list):
+        list_number = 1
+        embed = ""
+        for thing in thing_list:
+            item = f"{list_number} = {thing}\n"
+            embed += item
+            list_number += 1
+        return embed
+
     @bot.command(name='jail', help='Jails tagged user for specified amount of time.', pass_context=True)
     @has_permissions(kick_members=True)
-    async def jail_member(self, ctx, member: discord.Member, reason="Existing.", jail_time=None):
+    async def jail_member(self, ctx, member: discord.Member):
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+
+        jail_times = ["24 Hours", "1 Week", "1 Month"]
+        jail_times_embed = self.embed_maker(jail_times)
+        embedvar = discord.Embed(title=f"Select a time to jail {member} for:",
+                                 description=jail_times_embed,
+                                 color=0x00ff00)
+        await ctx.send(embed=embedvar)
+
+        def check(message):
+            return message.author == ctx.author and message.channel == ctx.channel
+
+        jail_time_number = 1
+        for x in range(5):
+            jail_time_number = (await bot.wait_for('message', check=check)).content
+            try:
+                jail_time_number = int(jail_time_number)
+            except ValueError:
+                await ctx.send("Please use a number.")
+                continue
+            break
+        jail_time = 24
+        jail_time_type = "Hours"
+        if jail_time_number == 1:
+            jail_time = 24
+            jail_time_type = "Hours"
+        elif jail_time_number == 2:
+            jail_time = 7
+            jail_time_type = "Days"
+        elif jail_time_number == 3:
+            jail_time = 1
+            jail_time_type = "Month"
+
+        await ctx.send(f"Enter a reason for jailing {member}:")
+        reason = str((await bot.wait_for('message', check=check)).content)
+
         now = datetime.datetime.now()
         guild = ctx.guild
         channel = bot.get_channel(773397004868649010)
@@ -452,14 +498,39 @@ class MetaBot(commands.Cog):
             roles_display += f"{roles[0]} and {roles[1]}."
         else:
             roles_display += f"{roles[0]}."
-        display = f"{member.mention} has been jailed on {now} for the following:\n{reason}\nYou will be released in: " \
-                  f"{jail_time}\nSaved roles: {roles_display} "
-        await channel.send(display)
+        jail_ticket_embed = discord.Embed(title=f"{member.mention} has been jailed on {now}",
+                                          description=f"Reason: {reason}\nYou will be released in: {jail_time} {jail_time_type}",
+                                          color=0x00ff00)
+        await channel.send(embed=jail_ticket_embed)
         for role in roles:
             role = get(guild.roles, name=role)
             await member.remove_roles(role)
         jail_role = get(guild.roles, name="JAIL")
         await member.add_roles(jail_role)
+        guild_settings[593941391110045697]["jail_tickets"] = {str(member): {"reason": reason, "time": now,
+                                                                            "sentence_length": jail_time,
+                                                                            "saved_roles": roles}}
+
+        with open('guild_settings.json', 'w') as file:
+            file.write(json.dumps(guild_settings))
+
+    async def unjail(self, inmate):
+        await bot.wait_until_ready()
+        with open('guild_settings.json', 'r') as file:
+            guild_settings = json.loads(file.read())
+        guild = bot.get_guild(593941391110045697)
+
+        inmate_roles = []
+        for role in guild_settings[593941391110045697]["jail_tickets"][inmate]["saved_roles"]:
+            role = str(role)
+            inmate_roles.append(role)
+
+        member = get(guild.members, name=str(inmate))
+        jail_role = get(guild.roles, name="JAIL")
+        await member.remove_roles(jail_role)
+        for role in inmate_roles:
+            role = get(guild.roles, name=role)
+            await member.add_roles(role)
 
     @bot.command(name='addfact', aliases=['addfacts'], help='Adds fact to random facts list.', pass_context=True)
     @has_permissions(kick_members=True)
@@ -569,7 +640,8 @@ class MetaBot(commands.Cog):
                 author_string = str(author)
                 author_full_id = author_string.split("#")
                 author_name = author_full_id[0]
-                await channel.send(f":red_circle: **LIVE**\n{author_name} is now streaming on {streaming_service}!\n{stream_url}")
+                await channel.send(
+                    f":red_circle: **LIVE**\n{author_name} is now streaming on {streaming_service}!\n{stream_url}")
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
@@ -673,6 +745,10 @@ class MetaBot(commands.Cog):
         # print("Server names:")
         # for guild in bot.guilds:
         #    print(guild.name)
+
+        # Initializing scheduler
+        scheduler = AsyncIOScheduler()
+        now = datetime.datetime.now()
         if not os.path.isfile('guild_settings.json'):
             with open('guild_settings.json', 'w') as file:
                 file.write(json.dumps({}))
@@ -683,8 +759,36 @@ class MetaBot(commands.Cog):
 
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
-        # Initializing scheduler
-        scheduler = AsyncIOScheduler()
+        for inmate in guild_settings[593941391110045697]["jail_tickets"]:
+            new_now = ""
+            sentence_length = guild_settings[593941391110045697]["jail_tickets"][inmate]["sentence_length"]
+            when_jailed = str(guild_settings[593941391110045697]["jail_tickets"][inmate]["time"])
+            when_jailed_items = when_jailed.split(" ")
+            when_jailed_date = when_jailed_items[0]
+            when_jailed_time = when_jailed_items[1]
+            date_split = when_jailed_date.split("-")
+            if sentence_length == 24:
+                new_day = int(date_split[2]) + 1
+                new_date = f"{date_split[0]}-{date_split[1]}-{new_day}"
+                new_date = str(new_date)
+                new_now = f"{new_date} {when_jailed_time}"
+                new_now = str(new_now)
+            elif sentence_length == 7:
+                new_day = int(date_split[2]) + 7
+                new_date = f"{date_split[0]}-{date_split[1]}-{new_day}"
+                new_date = str(new_date)
+                new_now = f"{new_date} {when_jailed_time}"
+                new_now = str(new_now)
+            elif sentence_length == 1:
+                new_month = int(date_split[1]) + 1
+                new_date = f"{date_split[0]}-{new_month}-{date_split[2]}"
+                new_date = str(new_date)
+                new_now = f"{new_date} {when_jailed_time}"
+                new_now = str(new_now)
+
+            if new_now == str(now):
+                scheduler.add_job(self.unjail(inmate))
+
         hour = 12
         minute = 0
         for guild in bot.guilds:
@@ -721,8 +825,10 @@ class MetaBot(commands.Cog):
         if "happy birthday" in message.content:
             await message.channel.send("Happy birthday!! :cake: :birthday: :tada:")
 
-        # This sends or updates an embed message with a description of the roles.
+        if message.content.startswith('$jail'):
+            await message.delete()
 
+        # This sends or updates an embed message with a description of the roles.
         if message.content.startswith('insert role reaction message'):
             await message.delete()
             guild_id = str(message.guild.id)
@@ -1060,21 +1166,12 @@ class MetaBot(commands.Cog):
         for items in swedish_list:
             bomb_data["SWEDEN"][items[0]] = items[1:]
 
-        def embed_maker(thing_list):
-            list_number = 1
-            embed = ""
-            for thing in thing_list:
-                item = f"{list_number} = {thing}\n"
-                embed += item
-                list_number += 1
-            return embed
-
         try:
             countries = []
             for country_number in bomb_data:
                 countries.append(country_number)
 
-            countries_embed = embed_maker(countries)
+            countries_embed = self.embed_maker(countries)
 
             embedvar = discord.Embed(title="Select a country to view bombs from:",
                                      description=countries_embed,
@@ -1096,7 +1193,7 @@ class MetaBot(commands.Cog):
                 for bomb_ in bomb_data[countries[0]]:
                     bombs.append(bomb_)
 
-                american_bombs_embed = embed_maker(bombs)
+                american_bombs_embed = self.embed_maker(bombs)
                 embedvar = discord.Embed(title=f"Select a bomb from {country}:",
                                          description=american_bombs_embed,
                                          color=0x00ff00)
@@ -1107,7 +1204,7 @@ class MetaBot(commands.Cog):
                 for bomb_ in bomb_data[countries[1]]:
                     bombs.append(bomb_)
 
-                german_bombs_embed = embed_maker(bombs)
+                german_bombs_embed = self.embed_maker(bombs)
                 embedvar = discord.Embed(title=f"Select a bomb from {countries[1]}:",
                                          description=german_bombs_embed,
                                          color=0x00ff00)
@@ -1118,7 +1215,7 @@ class MetaBot(commands.Cog):
                 for bomb_ in bomb_data[countries[2]]:
                     bombs.append(bomb_)
 
-                russian_bombs_embed = embed_maker(bombs)
+                russian_bombs_embed = self.embed_maker(bombs)
                 embedvar = discord.Embed(title=f"Select a bomb from {countries[2]}:",
                                          description=russian_bombs_embed,
                                          color=0x00ff00)
@@ -1129,7 +1226,7 @@ class MetaBot(commands.Cog):
                 for bomb_ in bomb_data[countries[3]]:
                     bombs.append(bomb_)
 
-                british_bombs_embed = embed_maker(bombs)
+                british_bombs_embed = self.embed_maker(bombs)
                 embedvar = discord.Embed(title=f"Select a bomb from {countries[3]}:",
                                          description=british_bombs_embed,
                                          color=0x00ff00)
@@ -1140,7 +1237,7 @@ class MetaBot(commands.Cog):
                 for bomb_ in bomb_data[countries[4]]:
                     bombs.append(bomb_)
 
-                japanese_bombs_embed = embed_maker(bombs)
+                japanese_bombs_embed = self.embed_maker(bombs)
                 embedvar = discord.Embed(title=f"Select a bomb from {countries[4]}:",
                                          description=japanese_bombs_embed,
                                          color=0x00ff00)
@@ -1151,7 +1248,7 @@ class MetaBot(commands.Cog):
                 for bomb_ in bomb_data[countries[5]]:
                     bombs.append(bomb_)
 
-                italian_bombs_embed = embed_maker(bombs)
+                italian_bombs_embed = self.embed_maker(bombs)
                 embedvar = discord.Embed(title=f"Select a bomb from {countries[5]}:",
                                          description=italian_bombs_embed,
                                          color=0x00ff00)
@@ -1162,7 +1259,7 @@ class MetaBot(commands.Cog):
                 for bomb_ in bomb_data[countries[6]]:
                     bombs.append(bomb_)
 
-                chinese_bombs_embed = embed_maker(bombs)
+                chinese_bombs_embed = self.embed_maker(bombs)
                 embedvar = discord.Embed(title=f"Select a bomb from {countries[6]}:",
                                          description=chinese_bombs_embed,
                                          color=0x00ff00)
@@ -1173,7 +1270,7 @@ class MetaBot(commands.Cog):
                 for bomb_ in bomb_data[countries[7]]:
                     bombs.append(bomb_)
 
-                france_bombs_embed = embed_maker(bombs)
+                france_bombs_embed = self.embed_maker(bombs)
                 embedvar = discord.Embed(title=f"Select a bomb from {countries[7]}:",
                                          description=france_bombs_embed,
                                          color=0x00ff00)
@@ -1184,7 +1281,7 @@ class MetaBot(commands.Cog):
                 for bomb_ in bomb_data[countries[8]]:
                     bombs.append(bomb_)
 
-                sweden_bombs_embed = embed_maker(bombs)
+                sweden_bombs_embed = self.embed_maker(bombs)
                 embedvar = discord.Embed(title=f"Select a bomb from {countries[8]}:",
                                          description=sweden_bombs_embed,
                                          color=0x00ff00)
@@ -1285,7 +1382,6 @@ bot.remove_command("factsendtime")
 bot.remove_command("leavemessage")
 bot.remove_command("test")
 bot.remove_command("jail")
-bot.remove_command("unjail")
 bot.add_cog(MetaBot(bot))
 
 print("Server Running.")
