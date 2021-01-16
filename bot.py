@@ -446,7 +446,10 @@ class MetaBot(commands.Cog):
     async def jail_member(self, ctx, member: discord.Member):
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
-
+        for role in member.roles:
+            if str(role) == "JAIL":
+                await ctx.send("This member is already in jail.")
+                return
         jail_times = ["24 Hours", "1 Week", "1 Month"]
         jail_times_embed = self.embed_maker(jail_times)
         embedvar = discord.Embed(title=f"Select a time to jail {member} for:",
