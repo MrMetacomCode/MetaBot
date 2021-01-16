@@ -21,8 +21,8 @@ from discord.utils import get
 # logger = logging.getLogger(__name__)
 # logger.debug('test')
 
-# METABOT_DISCORD_TOKEN
-TOKEN = os.getenv('TESTINGBOT_DISCORD_TOKEN')
+# TESTINGBOT_DISCORD_TOKEN
+TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
 SPREADSHEET_ID = '1S-AIIx2EQrLX8RHJr_AVIGPsQjehEdfUmbwKyinOs_I'
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
