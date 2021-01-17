@@ -769,7 +769,7 @@ class MetaBot(commands.Cog):
         try:
             for inmate in guild_settings["593941391110045697"]["jail_tickets"]:
                 new_now = ""
-                sentence_length = guild_settings["593941391110045697"]["jail_tickets"][inmate]["sentence_length"]
+                sentence_length = int(guild_settings["593941391110045697"]["jail_tickets"][inmate]["sentence_length"])
                 when_jailed = str(guild_settings["593941391110045697"]["jail_tickets"][inmate]["time"])
                 when_jailed_items = when_jailed.split(" ")
                 when_jailed_date = when_jailed_items[0]
