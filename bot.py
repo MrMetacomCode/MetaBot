@@ -794,17 +794,17 @@ class MetaBot(commands.Cog):
                     new_now = f"{new_date} {when_jailed_time}"
                     new_now = str(new_now)
 
-                new_now.split(" ")
-                new_date = new_now[0]
+                new_now_items = new_now.split(" ")
+                new_date = new_now_items[0]
                 new_date_items = new_date.split("-")
                 new_year = int(new_date_items[0])
                 new_month = int(new_date_items[1])
                 new_day = int(new_date_items[2])
-                new_time = new_now[1]
+                new_time = new_now_items[1]
                 new_time_items = new_time.split(":")
                 new_hour = int(new_time_items[0])
                 new_minute = int(new_time_items[1])
-                new_second = int(new_time_items[2])
+                new_second = round(float(new_time_items[2]))
                 scheduler.add_job(self.unjail(inmate),
                                   CronTrigger(year=new_year, month=new_month, day=new_day, hour=new_hour,
                                               minute=new_minute, second=new_second))
