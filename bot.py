@@ -805,6 +805,7 @@ class MetaBot(commands.Cog):
                 new_hour = int(new_time_items[0])
                 new_minute = int(new_time_items[1])
                 new_second = round(float(new_time_items[2]))
+                new_second = int(new_second)
                 scheduler.add_job(self.unjail(inmate),
                                   CronTrigger(year=new_year, month=new_month, day=new_day, hour=new_hour,
                                               minute=new_minute, second=new_second))
