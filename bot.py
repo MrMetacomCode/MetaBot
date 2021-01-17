@@ -520,24 +520,27 @@ class MetaBot(commands.Cog):
         with open('guild_settings.json', 'w') as file:
             file.write(json.dumps(guild_settings))
 
-    async def unjail(self, inmate):
+    async def unjail(self):
         await bot.wait_until_ready()
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
         guild = bot.get_guild(593941391110045697)
+        now = datetime.datetime.now()
 
-        inmate_roles = []
-        for role in guild_settings["593941391110045697"]["jail_tickets"][inmate]["saved_roles"]:
-            role = str(role)
-            inmate_roles.append(role)
+        for inmate in guild_settings["593941391110045697"]["jail_tickets"]:
+            if guild_settings["593941391110045697"]["jail_tickets"][inmate]["new_release_time"] == str(now):
+                inmate_roles = []
+                for role in guild_settings["593941391110045697"]["jail_tickets"][inmate]["saved_roles"]:
+                    role = str(role)
+                    inmate_roles.append(role)
 
-        member = get(guild.members, name=str(inmate))
-        jail_role = get(guild.roles, name="JAIL")
-        await member.remove_roles(jail_role)
-        for role in inmate_roles:
-            role = get(guild.roles, name=role)
-            await member.add_roles(role)
-        guild_settings["593941391110045697"]["jail_tickets"][inmate].pop()
+                member = get(guild.members, name=str(inmate))
+                jail_role = get(guild.roles, name="JAIL")
+                await member.remove_roles(jail_role)
+                for role in inmate_roles:
+                    role = get(guild.roles, name=role)
+                    await member.add_roles(role)
+                guild_settings["593941391110045697"]["jail_tickets"][inmate].pop()
 
     @bot.command(name='addfact', aliases=['addfacts'], help='Adds fact to random facts list.', pass_context=True)
     @has_permissions(kick_members=True)
@@ -755,7 +758,6 @@ class MetaBot(commands.Cog):
 
         # Initializing scheduler
         scheduler = AsyncIOScheduler()
-        now = datetime.datetime.now()
         if not os.path.isfile('guild_settings.json'):
             with open('guild_settings.json', 'w') as file:
                 file.write(json.dumps({}))
@@ -806,11 +808,15 @@ class MetaBot(commands.Cog):
                 new_minute = int(new_time_items[1])
                 new_second = round(float(new_time_items[2]))
                 new_second = int(new_second)
-                scheduler.add_job(self.unjail(inmate),
+                guild_settings["593941391110045697"]["jail_tokens"][inmate]["new_release_time"] = new_now
+                scheduler.add_job(self.unjail,
                                   CronTrigger(year=new_year, month=new_month, day=new_day, hour=new_hour,
                                               minute=new_minute, second=new_second))
         except KeyError:
             pass
+
+        with open('guild_settings.json', 'w') as file:
+            file.write(json.dumps(guild_settings))
 
         hour = 12
         minute = 0
