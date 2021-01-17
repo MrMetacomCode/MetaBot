@@ -460,7 +460,6 @@ class MetaBot(commands.Cog):
         def check(message):
             return message.author == ctx.author and message.channel == ctx.channel
 
-        jail_time_number = 1
         for x in range(5):
             jail_time_number = (await bot.wait_for('message', check=check)).content
             try:
@@ -515,8 +514,8 @@ class MetaBot(commands.Cog):
         jail_role = get(guild.roles, name="JAIL")
         await member.add_roles(jail_role)
         guild_settings["593941391110045697"]["jail_tickets"] = {str(member): {"reason": reason, "time": str(now),
-                                                                            "sentence_length": jail_time,
-                                                                            "saved_roles": roles}}
+                                                                              "sentence_length": jail_time,
+                                                                              "saved_roles": roles}}
 
         with open('guild_settings.json', 'w') as file:
             file.write(json.dumps(guild_settings))
@@ -795,8 +794,20 @@ class MetaBot(commands.Cog):
                     new_now = f"{new_date} {when_jailed_time}"
                     new_now = str(new_now)
 
-                if new_now == str(now):
-                    scheduler.add_job(self.unjail(inmate))
+                new_now.split(" ")
+                new_date = new_now[0]
+                new_date_items = new_date.split("-")
+                new_year = int(new_date_items[0])
+                new_month = int(new_date_items[1])
+                new_day = int(new_date_items[2])
+                new_time = new_now[1]
+                new_time_items = new_time.split(":")
+                new_hour = int(new_time_items[0])
+                new_minute = int(new_time_items[1])
+                new_second = int(new_time_items[2])
+                scheduler.add_job(self.unjail(inmate),
+                                  CronTrigger(year=new_year, month=new_month, day=new_day, hour=new_hour,
+                                              minute=new_minute, second=new_second))
         except KeyError:
             pass
 
@@ -813,7 +824,7 @@ class MetaBot(commands.Cog):
                 continue
 
         # Sends "Your Message" at 12PM and 18PM (Local Time)
-        scheduler.add_job(self.func, CronTrigger(hour=hour, minute=minute, second="0"))
+        scheduler.add_job(self.func, CronTrigger(hour=hour, minute=minute, second=0))
 
         # Starting the scheduler
         scheduler.start()
