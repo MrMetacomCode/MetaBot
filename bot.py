@@ -625,33 +625,34 @@ class MetaBot(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
-        # Get the guild ID.
         guild_id = after.guild.id
-        # Get the discord name of the author from their ID.
         author = bot.get_user(after.id)
-        # Get the channel you want your message to send in.
         channel = bot.get_channel(740369106880036965)
-        # This makes sure the message only sends once. The update is processed once for each guild the bot is in.
         if guild_id == 593941391110045697:
+            before_activity_type = None
             after_activity_type = None
             stream_url = None
-            # Get the URL of the stream and the activity (hopefully streaming) that they're doing.
             try:
+                before_activity_type = before.activity.type
                 after_activity_type = after.activity.type
                 stream_url = after.activity.url
             except:
                 pass
-            # Make sure they're streaming.
-            if after_activity_type is discord.ActivityType.streaming:
-                # Get the website they're streaming on and the name of the user.
-                stream_url_split = stream_url.split(".")
-                streaming_service = stream_url_split[1]
-                streaming_service = streaming_service.capitalize()
-                author_string = str(author)
-                author_full_id = author_string.split("#")
-                author_name = author_full_id[0]
-                await channel.send(
-                    f":red_circle: **LIVE**\n{author_name} is now streaming on {streaming_service}!\n{stream_url}")
+
+            # Make sure they weren't streaming already.
+            if before_activity_type is not discord.ActivityType.streaming:
+                print("The streamer is live and wasn't streaming before now.")
+                # Make sure they're streaming.
+                if after_activity_type is discord.ActivityType.streaming:
+                    # Get the website they're streaming on and the name of the user.
+                    stream_url_split = stream_url.split(".")
+                    streaming_service = stream_url_split[1]
+                    streaming_service = streaming_service.capitalize()
+                    author_string = str(author)
+                    author_full_id = author_string.split("#")
+                    author_name = author_full_id[0]
+                    await channel.send(
+                        f":red_circle: **LIVE**\n{author_name} is now streaming on {streaming_service}!\n{stream_url}")
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
