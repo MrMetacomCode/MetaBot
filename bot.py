@@ -518,7 +518,8 @@ class MetaBot(commands.Cog):
         guild_settings["593941391110045697"]["jail_tickets"] = {str(member): {"reason": reason, "time": str(now),
                                                                               "sentence_length": jail_time,
                                                                               "saved_roles": roles}}
-
+        general_channel = bot.get_channel(593941391110045699)
+        await general_channel.send(f"{member} has been sent to jail for {jail_time} {jail_time_type.lower()}.")
         with open('guild_settings.json', 'w') as file:
             file.write(json.dumps(guild_settings))
 
@@ -643,19 +644,19 @@ class MetaBot(commands.Cog):
             except:
                 pass
 
-            # Make sure they weren't streaming already.
+            # Make sure they weren't streaming already and make sure they're streaming after.
             if before_activity_type is not discord.ActivityType.streaming and after_activity_type is discord.ActivityType.streaming:
-                print("The streamer is live and wasn't streaming before now.")
-                # Make sure they're streaming.
-                # Get the website they're streaming on and the name of the user.
-                stream_url_split = stream_url.split(".")
-                streaming_service = stream_url_split[1]
-                streaming_service = streaming_service.capitalize()
-                author_string = str(author)
-                author_full_id = author_string.split("#")
-                author_name = author_full_id[0]
-                await channel.send(
-                    f":red_circle: **LIVE**\n{author_name} is now streaming on {streaming_service}!\n{stream_url}")
+                if before_activity_type is not discord.ActivityType.listening and after_activity_type is discord.ActivityType.streaming:
+                    print(f"{before_activity_type}, {after_activity_type}")
+                    # Get the website they're streaming on and the name of the user.
+                    stream_url_split = stream_url.split(".")
+                    streaming_service = stream_url_split[1]
+                    streaming_service = streaming_service.capitalize()
+                    author_string = str(author)
+                    author_full_id = author_string.split("#")
+                    author_name = author_full_id[0]
+                    await channel.send(
+                        f":red_circle: **LIVE**\n{author_name} is now streaming on {streaming_service}!\n{stream_url}")
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
