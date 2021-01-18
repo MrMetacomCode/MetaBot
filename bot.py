@@ -771,53 +771,51 @@ class MetaBot(commands.Cog):
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
 
-        if guild_settings["593941391110045697"]["jail_tickets"] is not None:
-            for inmate in guild_settings["593941391110045697"]["jail_tickets"]:
-                new_now = ""
-                sentence_length = int(guild_settings["593941391110045697"]["jail_tickets"][inmate]["sentence_length"])
-                when_jailed = str(guild_settings["593941391110045697"]["jail_tickets"][inmate]["time"])
-                when_jailed_items = when_jailed.split(" ")
-                when_jailed_date = when_jailed_items[0]
-                when_jailed_time = when_jailed_items[1]
-                date_split = when_jailed_date.split("-")
-                if sentence_length == 24:
-                    new_day = int(date_split[2]) + 1
-                    new_date = f"{date_split[0]}-{date_split[1]}-{new_day}"
-                    new_date = str(new_date)
-                    new_now = f"{new_date} {when_jailed_time}"
-                    new_now = str(new_now)
-                elif sentence_length == 7:
-                    new_day = int(date_split[2]) + 7
-                    new_date = f"{date_split[0]}-{date_split[1]}-{new_day}"
-                    new_date = str(new_date)
-                    new_now = f"{new_date} {when_jailed_time}"
-                    new_now = str(new_now)
-                elif sentence_length == 1:
-                    new_month = int(date_split[1]) + 1
-                    new_date = f"{date_split[0]}-{new_month}-{date_split[2]}"
-                    new_date = str(new_date)
-                    new_now = f"{new_date} {when_jailed_time}"
-                    new_now = str(new_now)
+        for inmate in guild_settings["593941391110045697"]["jail_tickets"]:
+            new_now = ""
+            sentence_length = int(guild_settings["593941391110045697"]["jail_tickets"][inmate]["sentence_length"])
+            when_jailed = str(guild_settings["593941391110045697"]["jail_tickets"][inmate]["time"])
+            when_jailed_items = when_jailed.split(" ")
+            when_jailed_date = when_jailed_items[0]
+            when_jailed_time = when_jailed_items[1]
+            date_split = when_jailed_date.split("-")
+            if sentence_length == 24:
+                new_day = int(date_split[2]) + 1
+                new_date = f"{date_split[0]}-{date_split[1]}-{new_day}"
+                new_date = str(new_date)
+                new_now = f"{new_date} {when_jailed_time}"
+                new_now = str(new_now)
+            elif sentence_length == 7:
+                new_day = int(date_split[2]) + 7
+                new_date = f"{date_split[0]}-{date_split[1]}-{new_day}"
+                new_date = str(new_date)
+                new_now = f"{new_date} {when_jailed_time}"
+                new_now = str(new_now)
+            elif sentence_length == 1:
+                new_month = int(date_split[1]) + 1
+                new_date = f"{date_split[0]}-{new_month}-{date_split[2]}"
+                new_date = str(new_date)
+                new_now = f"{new_date} {when_jailed_time}"
+                new_now = str(new_now)
 
-                new_now_items = new_now.split(" ")
-                new_date = new_now_items[0]
-                new_date_items = new_date.split("-")
-                new_year = int(new_date_items[0])
-                new_month = int(new_date_items[1])
-                new_day = int(new_date_items[2])
-                new_time = new_now_items[1]
-                new_time_items = new_time.split(":")
-                new_hour = int(new_time_items[0])
-                new_minute = int(new_time_items[1])
-                new_second = round(float(new_time_items[2]))
-                new_second = int(new_second)
-                guild_settings["593941391110045697"]["jail_tickets"][inmate]["new_release_time"] = new_now
+            new_now_items = new_now.split(" ")
+            new_date = new_now_items[0]
+            new_date_items = new_date.split("-")
+            new_year = int(new_date_items[0])
+            new_month = int(new_date_items[1])
+            new_day = int(new_date_items[2])
+            new_time = new_now_items[1]
+            new_time_items = new_time.split(":")
+            new_hour = int(new_time_items[0])
+            new_minute = int(new_time_items[1])
+            new_second = round(float(new_time_items[2]))
+            new_second = int(new_second)
+            guild_settings["593941391110045697"]["jail_tickets"][inmate]["new_release_time"] = new_now
 
-            scheduler.add_job(self.unjail,
-                              CronTrigger(year=new_year, month=new_month, day=new_day, hour=new_hour,
-                                          minute=new_minute, second=new_second))
-        else:
-            pass
+        scheduler.add_job(self.unjail,
+                          CronTrigger(year=new_year, month=new_month, day=new_day, hour=new_hour,
+                                      minute=new_minute, second=new_second))
+
         with open('guild_settings.json', 'w') as file:
             file.write(json.dumps(guild_settings))
 
