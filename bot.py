@@ -811,7 +811,7 @@ class MetaBot(commands.Cog):
                 new_minute = int(new_time_items[1])
                 new_second = round(float(new_time_items[2]))
                 new_second = int(new_second)
-                guild_settings["593941391110045697"]["jail_tokens"][inmate]["new_release_time"] = new_now
+                guild_settings["593941391110045697"]["jail_tickets"][inmate]["new_release_time"] = new_now
 
             scheduler.add_job(self.unjail,
                               CronTrigger(year=new_year, month=new_month, day=new_day, hour=new_hour,
