@@ -525,6 +525,7 @@ class MetaBot(commands.Cog):
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
         guild = bot.get_guild(593941391110045697)
+        general_channel = bot.get_channel(593941391110045699)
         now = datetime.datetime.now()
 
         for inmate in guild_settings["593941391110045697"]["jail_tickets"]:
@@ -541,6 +542,7 @@ class MetaBot(commands.Cog):
                     role = get(guild.roles, name=role)
                     await member.add_roles(role)
                 guild_settings["593941391110045697"]["jail_tickets"][inmate].pop()
+                await general_channel.send(f"{inmate} has been released from jail.")
 
     @bot.command(name='addfact', aliases=['addfacts'], help='Adds fact to random facts list.', pass_context=True)
     @has_permissions(kick_members=True)
@@ -640,19 +642,18 @@ class MetaBot(commands.Cog):
                 pass
 
             # Make sure they weren't streaming already.
-            if before_activity_type is not discord.ActivityType.streaming:
+            if before_activity_type is not discord.ActivityType.streaming and after_activity_type is discord.ActivityType.streaming:
                 print("The streamer is live and wasn't streaming before now.")
                 # Make sure they're streaming.
-                if after_activity_type is discord.ActivityType.streaming:
-                    # Get the website they're streaming on and the name of the user.
-                    stream_url_split = stream_url.split(".")
-                    streaming_service = stream_url_split[1]
-                    streaming_service = streaming_service.capitalize()
-                    author_string = str(author)
-                    author_full_id = author_string.split("#")
-                    author_name = author_full_id[0]
-                    await channel.send(
-                        f":red_circle: **LIVE**\n{author_name} is now streaming on {streaming_service}!\n{stream_url}")
+                # Get the website they're streaming on and the name of the user.
+                stream_url_split = stream_url.split(".")
+                streaming_service = stream_url_split[1]
+                streaming_service = streaming_service.capitalize()
+                author_string = str(author)
+                author_full_id = author_string.split("#")
+                author_name = author_full_id[0]
+                await channel.send(
+                    f":red_circle: **LIVE**\n{author_name} is now streaming on {streaming_service}!\n{stream_url}")
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
@@ -769,7 +770,8 @@ class MetaBot(commands.Cog):
 
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
-        try:
+
+        if guild_settings["593941391110045697"]["jail_tickets"] is not None:
             for inmate in guild_settings["593941391110045697"]["jail_tickets"]:
                 new_now = ""
                 sentence_length = int(guild_settings["593941391110045697"]["jail_tickets"][inmate]["sentence_length"])
@@ -810,12 +812,12 @@ class MetaBot(commands.Cog):
                 new_second = round(float(new_time_items[2]))
                 new_second = int(new_second)
                 guild_settings["593941391110045697"]["jail_tokens"][inmate]["new_release_time"] = new_now
-                scheduler.add_job(self.unjail,
-                                  CronTrigger(year=new_year, month=new_month, day=new_day, hour=new_hour,
-                                              minute=new_minute, second=new_second))
-        except KeyError:
-            pass
 
+            scheduler.add_job(self.unjail,
+                              CronTrigger(year=new_year, month=new_month, day=new_day, hour=new_hour,
+                                          minute=new_minute, second=new_second))
+        else:
+            pass
         with open('guild_settings.json', 'w') as file:
             file.write(json.dumps(guild_settings))
 
