@@ -815,9 +815,14 @@ class MetaBot(commands.Cog):
         except KeyError:
             pass
 
-        scheduler.add_job(self.unjail,
-                          CronTrigger(year=new_year, month=new_month, day=new_day, hour=new_hour,
-                                      minute=new_minute, second=new_second))
+        try:
+            # Just to see if there's anything in "jail_tickets"
+            tickets = guild_settings["593941391110045697"]["jail_tickets"]
+            scheduler.add_job(self.unjail,
+                              CronTrigger(year=new_year, month=new_month, day=new_day, hour=new_hour,
+                                          minute=new_minute, second=new_second))
+        except KeyError:
+            pass
 
         with open('guild_settings.json', 'w') as file:
             file.write(json.dumps(guild_settings))
