@@ -487,6 +487,8 @@ class MetaBot(commands.Cog):
         await ctx.send(f"Enter a reason for jailing {member}:")
         reason = str((await bot.wait_for('message', check=check)).content)
 
+        general_channel = bot.get_channel(593941391110045699)
+        await general_channel.send(f"{member} has been jailed for {jail_time} {jail_time_type.lower()}.")
         now = datetime.datetime.now()
         guild = ctx.guild
         channel = bot.get_channel(773397004868649010)
