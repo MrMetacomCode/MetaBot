@@ -5,6 +5,7 @@ import pickle
 import random
 import discord
 import datetime
+import asyncio
 from discord import Intents
 from discord import Streaming
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -22,8 +23,8 @@ from discord.utils import get
 # logger = logging.getLogger(__name__)
 # logger.debug('test')
 
-# TESTINGBOT_DISCORD_TOKEN
-TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
+# METABOT_DISCORD_TOKEN
+TOKEN = os.getenv('TESTINGBOT_DISCORD_TOKEN')
 SPREADSHEET_ID = '1S-AIIx2EQrLX8RHJr_AVIGPsQjehEdfUmbwKyinOs_I'
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
@@ -445,8 +446,6 @@ class MetaBot(commands.Cog):
     @bot.command(name='jail', help='Jails tagged user for specified amount of time.', pass_context=True)
     @has_permissions(kick_members=True)
     async def jail_member(self, ctx, member: discord.Member):
-        with open('guild_settings.json', 'r') as file:
-            guild_settings = json.loads(file.read())
         for role in member.roles:
             if str(role) == "JAIL":
                 await ctx.send("This member is already in jail.")
@@ -479,10 +478,10 @@ class MetaBot(commands.Cog):
             jail_time = 24
             jail_time_type = "Hours"
         elif jail_time_number == 2:
-            jail_time = 7
+            jail_time = 168
             jail_time_type = "Days"
         elif jail_time_number == 3:
-            jail_time = 1
+            jail_time = 672
             jail_time_type = "Month"
 
         await ctx.send(f"Enter a reason for jailing {member}:")
@@ -492,7 +491,7 @@ class MetaBot(commands.Cog):
         await general_channel.send(f"{member} has been jailed for {jail_time} {jail_time_type.lower()}.")
         now = datetime.datetime.now()
         guild = ctx.guild
-        channel = bot.get_channel(773397004868649010)
+        jail_channel = bot.get_channel(773397004868649010)
         roles = []
         for role in member.roles:
             role = str(role)
@@ -508,45 +507,23 @@ class MetaBot(commands.Cog):
         else:
             roles_display += f"{roles[0]}."
         jail_ticket_embed = discord.Embed(title=f"{member} has been jailed on {now}",
-                                          description=f"Reason: {reason}\nYou will be released in: {jail_time} {jail_time_type}",
+                                          description=f"Reason: {reason}\nYou will be released in: {jail_time} {jail_time_type}\nSaved roles: {roles_display}",
                                           color=0x00ff00)
-        await channel.send(embed=jail_ticket_embed)
+        jail_ticket_message = await jail_channel.send(embed=jail_ticket_embed)
         for role in roles:
             role = get(guild.roles, name=role)
             await member.remove_roles(role)
         jail_role = get(guild.roles, name="JAIL")
         await member.add_roles(jail_role)
-        guild_settings["593941391110045697"]["jail_tickets"] = {str(member): {"reason": reason, "time": str(now),
-                                                                              "sentence_length": jail_time,
-                                                                              "saved_roles": roles}}
-        general_channel = bot.get_channel(593941391110045699)
-        await general_channel.send(f"{member} has been sent to jail for {jail_time} {jail_time_type.lower()}.")
-        with open('guild_settings.json', 'w') as file:
-            file.write(json.dumps(guild_settings))
+        await ctx.send(f"{member} has been jailed.")
 
-    async def unjail(self):
-        await bot.wait_until_ready()
-        with open('guild_settings.json', 'r') as file:
-            guild_settings = json.loads(file.read())
-        guild = bot.get_guild(593941391110045697)
-        general_channel = bot.get_channel(593941391110045699)
-        now = datetime.datetime.now()
-
-        for inmate in guild_settings["593941391110045697"]["jail_tickets"]:
-            if guild_settings["593941391110045697"]["jail_tickets"][inmate]["new_release_time"] == str(now):
-                inmate_roles = []
-                for role in guild_settings["593941391110045697"]["jail_tickets"][inmate]["saved_roles"]:
-                    role = str(role)
-                    inmate_roles.append(role)
-
-                member = get(guild.members, name=str(inmate))
-                jail_role = get(guild.roles, name="JAIL")
-                await member.remove_roles(jail_role)
-                for role in inmate_roles:
-                    role = get(guild.roles, name=role)
-                    await member.add_roles(role)
-                guild_settings["593941391110045697"]["jail_tickets"][inmate].pop()
-                await general_channel.send(f"{inmate} has been released from jail.")
+        await asyncio.sleep(delay=jail_time*3600)
+        for role in roles:
+            role = get(guild.roles, name=role)
+            await member.add_roles(role)
+        await member.remove_roles(jail_role)
+        await general_channel.send(f"{member} has been released from jail.")
+        await jail_ticket_message.delete()
 
     @bot.command(name='addfact', aliases=['addfacts'], help='Adds fact to random facts list.', pass_context=True)
     @has_permissions(kick_members=True)
@@ -768,62 +745,6 @@ class MetaBot(commands.Cog):
 
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
-
-        try:
-            for inmate in guild_settings["593941391110045697"]["jail_tickets"]:
-                new_now = ""
-                sentence_length = int(guild_settings["593941391110045697"]["jail_tickets"][inmate]["sentence_length"])
-                when_jailed = str(guild_settings["593941391110045697"]["jail_tickets"][inmate]["time"])
-                when_jailed_items = when_jailed.split(" ")
-                when_jailed_date = when_jailed_items[0]
-                when_jailed_time = when_jailed_items[1]
-                date_split = when_jailed_date.split("-")
-                if sentence_length == 24:
-                    new_day = int(date_split[2]) + 1
-                    new_date = f"{date_split[0]}-{date_split[1]}-{new_day}"
-                    new_date = str(new_date)
-                    new_now = f"{new_date} {when_jailed_time}"
-                    new_now = str(new_now)
-                elif sentence_length == 7:
-                    new_day = int(date_split[2]) + 7
-                    new_date = f"{date_split[0]}-{date_split[1]}-{new_day}"
-                    new_date = str(new_date)
-                    new_now = f"{new_date} {when_jailed_time}"
-                    new_now = str(new_now)
-                elif sentence_length == 1:
-                    new_month = int(date_split[1]) + 1
-                    new_date = f"{date_split[0]}-{new_month}-{date_split[2]}"
-                    new_date = str(new_date)
-                    new_now = f"{new_date} {when_jailed_time}"
-                    new_now = str(new_now)
-
-                new_now_items = new_now.split(" ")
-                new_date = new_now_items[0]
-                new_date_items = new_date.split("-")
-                new_year = int(new_date_items[0])
-                new_month = int(new_date_items[1])
-                new_day = int(new_date_items[2])
-                new_time = new_now_items[1]
-                new_time_items = new_time.split(":")
-                new_hour = int(new_time_items[0])
-                new_minute = int(new_time_items[1])
-                new_second = round(float(new_time_items[2]))
-                new_second = int(new_second)
-                guild_settings["593941391110045697"]["jail_tickets"][inmate]["new_release_time"] = new_now
-        except KeyError:
-            pass
-
-        try:
-            # Just to see if there's anything in "jail_tickets"
-            tickets = guild_settings["593941391110045697"]["jail_tickets"]
-            scheduler.add_job(self.unjail,
-                              CronTrigger(year=new_year, month=new_month, day=new_day, hour=new_hour,
-                                          minute=new_minute, second=new_second))
-        except KeyError:
-            pass
-
-        with open('guild_settings.json', 'w') as file:
-            file.write(json.dumps(guild_settings))
 
         hour = 12
         minute = 0
