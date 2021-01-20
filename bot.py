@@ -507,7 +507,7 @@ class MetaBot(commands.Cog):
         else:
             roles_display += f"{roles[0]}."
         jail_ticket_embed = discord.Embed(title=f"{member} has been jailed on {now}",
-                                          description=f"Reason: {reason}\nYou will be released in: {jail_time} {jail_time_type}\nSaved roles: {roles_display}",
+                                          description=f"Reason: {reason}\nYou will be released in: {jail_time} {jail_time_type}",
                                           color=0x00ff00)
         jail_ticket_message = await jail_channel.send(embed=jail_ticket_embed)
         for role in roles:
