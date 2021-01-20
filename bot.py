@@ -517,13 +517,18 @@ class MetaBot(commands.Cog):
         await member.add_roles(jail_role)
         await ctx.send(f"{member} has been jailed.")
 
-        await asyncio.sleep(delay=jail_time*3600)
+        await asyncio.sleep(delay=5)
         for role in roles:
             role = get(guild.roles, name=role)
             await member.add_roles(role)
         await member.remove_roles(jail_role)
         await general_channel.send(f"{member} has been released from jail.")
-        await jail_ticket_message.delete()
+        jail_ticket_title = jail_ticket_embed.title
+        jail_ticket_description = jail_ticket_embed.description
+        released_jail_ticket = discord.Embed(title=f"🔓STATUS: RELEASED\n{jail_ticket_title}",
+                                          description=f"{jail_ticket_description}",
+                                          color=0x00ff00)
+        await jail_ticket_message.edit(embed=released_jail_ticket)
 
     @bot.command(name='addfact', aliases=['addfacts'], help='Adds fact to random facts list.', pass_context=True)
     @has_permissions(kick_members=True)
