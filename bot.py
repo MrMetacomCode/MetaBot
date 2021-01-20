@@ -517,7 +517,7 @@ class MetaBot(commands.Cog):
         await member.add_roles(jail_role)
         await ctx.send(f"{member} has been jailed.")
 
-        await asyncio.sleep(delay=5)
+        await asyncio.sleep(delay=jail_time*3600)
         for role in roles:
             role = get(guild.roles, name=role)
             await member.add_roles(role)
