@@ -506,6 +506,30 @@ class MetaBot(commands.Cog):
             roles_display += f"{roles[0]} and {roles[1]}."
         else:
             roles_display += f"{roles[0]}."
+        # Converting 24h time to normal time.
+        try:
+            now2 = str(now).split(" ")
+            date = now2[0]
+            date_items = date.split("-")
+            year = date_items[0]
+            month = date_items[1]
+            day = date_items[2]
+            time = now2[1]
+            time_items = time.split(":")
+            hour = int(time_items[0])
+            minute = int(time_items[1])
+            if hour < 12:
+                morning_or_night = "am"
+            elif hour >= 12:
+                morning_or_night = "pm"
+            if hour > 12:
+                hour = hour - 12
+            new_date = f"{day}/{month}/{year}"
+            new_time = f"{hour}:{minute}{morning_or_night}"
+            now = f"{new_date} at {new_time}"
+        except:
+            now = datetime.datetime.now()
+
         jail_ticket_embed = discord.Embed(title=f"{member} has been jailed on {now}",
                                           description=f"Reason: {reason}\nYou will be released in: {jail_time} {jail_time_type}",
                                           color=0x00ff00)
