@@ -14,7 +14,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from discord.ext.commands import has_permissions, MissingPermissions
 from apscheduler.triggers.cron import CronTrigger
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.utils import get
 
 # import logging
@@ -754,6 +754,10 @@ class MetaBot(commands.Cog):
                     continue
                 await channel.send(random_choice)
 
+    @tasks.loop(minutes=5)
+    async def changestatus(self):
+        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.custom, name="$help WALL-E"))
+
     @commands.Cog.listener()
     async def on_ready(self):
         print("Bot is ready.")
@@ -761,6 +765,8 @@ class MetaBot(commands.Cog):
         # print("Server names:")
         # for guild in bot.guilds:
         #    print(guild.name)
+
+        self.changestatus.start()
 
         # Initializing scheduler
         scheduler = AsyncIOScheduler()
