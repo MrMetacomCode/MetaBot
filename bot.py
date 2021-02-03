@@ -525,7 +525,7 @@ class MetaBot(commands.Cog):
             if hour > 12:
                 hour = hour - 12
             if hour == 0:
-                hour = 1
+                hour = 12
             new_date = f"{month}/{day}/{year}"
             new_time = f"{hour}:{minute}{morning_or_night}"
             now = f"{new_date} at {new_time}"
@@ -760,10 +760,6 @@ class MetaBot(commands.Cog):
                     continue
                 await channel.send(random_choice)
 
-    @tasks.loop(minutes=5)
-    async def changestatus(self):
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.custom, name="$help WALL-E"))
-
     @commands.Cog.listener()
     async def on_ready(self):
         print("Bot is ready.")
@@ -772,7 +768,7 @@ class MetaBot(commands.Cog):
         # for guild in bot.guilds:
         #    print(guild.name)
 
-        self.changestatus.start()
+        await bot.change_presence(activity=discord.Game("$help WALL-E"))
 
         # Initializing scheduler
         scheduler = AsyncIOScheduler()
