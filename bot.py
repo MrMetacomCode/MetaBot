@@ -646,6 +646,10 @@ class MetaBot(commands.Cog):
             role = get(after.guild.roles, id=800971369441394698)
             channel = get(after.guild.channels, id=740369106880036965)
 
+            async for message in channel.history(limit=200):
+                if before.mention in message.content and "is now streaming" in message.content:
+                    return
+
             if isinstance(after.activity, Streaming):
                 await after.add_roles(role)
                 stream_url = after.activity.url
