@@ -6,6 +6,8 @@ import random
 import discord
 import datetime
 import asyncio
+import smtplib
+from email.message import EmailMessage
 from discord import Intents
 from discord import Streaming
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -648,7 +650,8 @@ class MetaBot(commands.Cog):
 
             async for message in channel.history(limit=200):
                 if before.mention in message.content and "is now streaming" in message.content:
-                    return
+                    if isinstance(after.activity, Streaming):
+                        return
 
             if isinstance(after.activity, Streaming):
                 await after.add_roles(role)
