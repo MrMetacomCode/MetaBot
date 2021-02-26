@@ -448,115 +448,118 @@ class MetaBot(commands.Cog):
     @bot.command(name='jail', help='Jails tagged user for specified amount of time.', pass_context=True)
     @has_permissions(kick_members=True)
     async def jail_member(self, ctx, member: discord.Member):
-        for role in member.roles:
-            if str(role) == "JAIL":
-                await ctx.send("This member is already in jail.")
+        if ctx.guild.id == 593941391110045697:
+            for role in member.roles:
+                if str(role) == "JAIL":
+                    await ctx.send("This member is already in jail.")
+                    return
+            jail_times = ["24 Hours", "1 Week", "1 Month"]
+            jail_times_embed = self.embed_maker(jail_times)
+            embedvar = discord.Embed(title=f"Select a time to jail {member} for:",
+                                     description=jail_times_embed,
+                                     color=0x00ff00)
+            await ctx.send(embed=embedvar)
+
+            def check(message):
+                return message.author == ctx.author and message.channel == ctx.channel
+
+            for x in range(5):
+                jail_time_number = (await bot.wait_for('message', check=check)).content
+                try:
+                    jail_time_number = int(jail_time_number)
+                except ValueError:
+                    await ctx.send("Please use a number.")
+                    continue
+                break
+            else:
+                await ctx.send("You didn't use a number. Goodbye.")
                 return
-        jail_times = ["24 Hours", "1 Week", "1 Month"]
-        jail_times_embed = self.embed_maker(jail_times)
-        embedvar = discord.Embed(title=f"Select a time to jail {member} for:",
-                                 description=jail_times_embed,
-                                 color=0x00ff00)
-        await ctx.send(embed=embedvar)
 
-        def check(message):
-            return message.author == ctx.author and message.channel == ctx.channel
-
-        for x in range(5):
-            jail_time_number = (await bot.wait_for('message', check=check)).content
-            try:
-                jail_time_number = int(jail_time_number)
-            except ValueError:
-                await ctx.send("Please use a number.")
-                continue
-            break
-        else:
-            await ctx.send("You didn't use a number. Goodbye.")
-            return
-
-        jail_time = 24
-        jail_time_type = "Hours"
-        if jail_time_number == 1:
             jail_time = 24
             jail_time_type = "Hours"
-        elif jail_time_number == 2:
-            jail_time = 168
-            jail_time_type = "Days"
-        elif jail_time_number == 3:
-            jail_time = 672
-            jail_time_type = "Month"
+            if jail_time_number == 1:
+                jail_time = 24
+                jail_time_type = "Hours"
+            elif jail_time_number == 2:
+                jail_time = 168
+                jail_time_type = "Days"
+            elif jail_time_number == 3:
+                jail_time = 672
+                jail_time_type = "Month"
 
-        await ctx.send(f"Enter a reason for jailing {member}:")
-        reason = str((await bot.wait_for('message', check=check)).content)
+            await ctx.send(f"Enter a reason for jailing {member}:")
+            reason = str((await bot.wait_for('message', check=check)).content)
 
-        general_channel = bot.get_channel(593941391110045699)
-        await general_channel.send(f"{member} has been jailed for {jail_time} {jail_time_type.lower()}.")
-        now = datetime.datetime.now()
-        guild = ctx.guild
-        jail_channel = bot.get_channel(773397004868649010)
-        roles = []
-        for role in member.roles:
-            role = str(role)
-            roles.append(role)
-        roles = roles[1:]
-        roles_display = ""
-        if len(roles) >= 3:
-            for role in roles[:-1]:
-                roles_display += f"{role}, "
-            roles_display += f"and {roles[-1]}."
-        elif len(roles) == 2:
-            roles_display += f"{roles[0]} and {roles[1]}."
-        else:
-            roles_display += f"{roles[0]}."
-        # Converting 24h time to normal time.
-        try:
-            now2 = str(now).split(" ")
-            date = now2[0]
-            date_items = date.split("-")
-            year = date_items[0]
-            month = date_items[1]
-            day = date_items[2]
-            time = now2[1]
-            time_items = time.split(":")
-            hour = int(time_items[0])
-            minute = int(time_items[1])
-            if hour < 12:
-                morning_or_night = "am"
-            elif hour >= 12:
-                morning_or_night = "pm"
-            if hour > 12:
-                hour = hour - 12
-            if hour == 0:
-                hour = 12
-            new_date = f"{month}/{day}/{year}"
-            new_time = f"{hour}:{minute}{morning_or_night}"
-            now = f"{new_date} at {new_time}"
-        except:
+            general_channel = bot.get_channel(593941391110045699)
+            await general_channel.send(f"{member} has been jailed for {jail_time} {jail_time_type.lower()}.")
             now = datetime.datetime.now()
+            guild = ctx.guild
+            jail_channel = bot.get_channel(773397004868649010)
+            roles = []
+            for role in member.roles:
+                role = str(role)
+                roles.append(role)
+            roles = roles[1:]
+            roles_display = ""
+            if len(roles) >= 3:
+                for role in roles[:-1]:
+                    roles_display += f"{role}, "
+                roles_display += f"and {roles[-1]}."
+            elif len(roles) == 2:
+                roles_display += f"{roles[0]} and {roles[1]}."
+            else:
+                roles_display += f"{roles[0]}."
+            # Converting 24h time to normal time.
+            try:
+                now2 = str(now).split(" ")
+                date = now2[0]
+                date_items = date.split("-")
+                year = date_items[0]
+                month = date_items[1]
+                day = date_items[2]
+                time = now2[1]
+                time_items = time.split(":")
+                hour = int(time_items[0])
+                minute = int(time_items[1])
+                if hour < 12:
+                    morning_or_night = "am"
+                elif hour >= 12:
+                    morning_or_night = "pm"
+                if hour > 12:
+                    hour = hour - 12
+                if hour == 0:
+                    hour = 12
+                new_date = f"{month}/{day}/{year}"
+                new_time = f"{hour}:{minute}{morning_or_night}"
+                now = f"{new_date} at {new_time}"
+            except:
+                now = datetime.datetime.now()
 
-        jail_ticket_embed = discord.Embed(title=f"{member} has been jailed on {now}",
-                                          description=f"Reason: {reason}\nYou will be released in: {jail_time} {jail_time_type}",
-                                          color=0x00ff00)
-        jail_ticket_message = await jail_channel.send(embed=jail_ticket_embed)
-        for role in roles:
-            role = get(guild.roles, name=role)
-            await member.remove_roles(role)
-        jail_role = get(guild.roles, name="JAIL")
-        await member.add_roles(jail_role)
-        await ctx.send(f"{member} has been jailed.")
+            jail_ticket_embed = discord.Embed(title=f"{member} has been jailed on {now}",
+                                              description=f"Reason: {reason}\nYou will be released in: {jail_time} {jail_time_type}",
+                                              color=0x00ff00)
+            jail_ticket_message = await jail_channel.send(embed=jail_ticket_embed)
+            for role in roles:
+                role = get(guild.roles, name=role)
+                await member.remove_roles(role)
+            jail_role = get(guild.roles, name="JAIL")
+            await member.add_roles(jail_role)
+            await ctx.send(f"{member} has been jailed.")
 
-        await asyncio.sleep(delay=jail_time*3600)
-        for role in roles:
-            role = get(guild.roles, name=role)
-            await member.add_roles(role)
-        await member.remove_roles(jail_role)
-        await general_channel.send(f"{member} has been released from jail.")
-        jail_ticket_title = jail_ticket_embed.title
-        jail_ticket_description = jail_ticket_embed.description
-        released_jail_ticket = discord.Embed(title=f"🔓STATUS: RELEASED\n{jail_ticket_title}",
-                                          description=f"{jail_ticket_description}",
-                                          color=0x00ff00)
-        await jail_ticket_message.edit(embed=released_jail_ticket)
+            await asyncio.sleep(delay=jail_time*3600)
+            for role in roles:
+                role = get(guild.roles, name=role)
+                await member.add_roles(role)
+            await member.remove_roles(jail_role)
+            await general_channel.send(f"{member} has been released from jail.")
+            jail_ticket_title = jail_ticket_embed.title
+            jail_ticket_description = jail_ticket_embed.description
+            released_jail_ticket = discord.Embed(title=f"🔓STATUS: RELEASED\n{jail_ticket_title}",
+                                              description=f"{jail_ticket_description}",
+                                              color=0x00ff00)
+            await jail_ticket_message.edit(embed=released_jail_ticket)
+        else:
+            await ctx.send("This command is reserved and hasn't been rolled out for use with all servers.")
 
     @bot.command(name='addfact', aliases=['addfacts'], help='Adds fact to random facts list.', pass_context=True)
     @has_permissions(kick_members=True)
