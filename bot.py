@@ -663,35 +663,36 @@ class MetaBot(commands.Cog):
             file.write(json.dumps(streamers))
         await ctx.send(f"Added {twitch_name} for {ctx.author} to the Twitch notifications list.")
 
-    @commands.Cog.listener()
-    async def on_member_update(self, before, after):
-        if after.guild.id == 593941391110045697:
-            if before.activity == after.activity:
-                return
-
-            role = get(after.guild.roles, id=800971369441394698)
-            channel = get(after.guild.channels, id=740369106880036965)
-
-            async for message in channel.history(limit=200):
-                if before.mention in message.content and "is now streaming" in message.content:
-                    if isinstance(after.activity, Streaming):
-                        return
-
-            if isinstance(after.activity, Streaming):
-                await after.add_roles(role)
-                stream_url = after.activity.url
-                stream_url_split = stream_url.split(".")
-                streaming_service = stream_url_split[1]
-                streaming_service = streaming_service.capitalize()
-                await channel.send(
-                    f":red_circle: **LIVE**\n{before.mention} is now streaming on {streaming_service}!\n{stream_url}")
-            elif isinstance(before.activity, Streaming):
-                await after.remove_roles(role)
-                async for message in channel.history(limit=200):
-                    if before.mention in message.content and "is now streaming" in message.content:
-                        await message.delete()
-            else:
-                return
+    # Old way of sending Twitch notifs using on_member_update **UNRELIABLE**
+    # @commands.Cog.listener()
+    # async def on_member_update(self, before, after):
+    #     if after.guild.id == 593941391110045697:
+    #         if before.activity == after.activity:
+    #             return
+    #
+    #         role = get(after.guild.roles, id=800971369441394698)
+    #         channel = get(after.guild.channels, id=740369106880036965)
+    #
+    #         async for message in channel.history(limit=200):
+    #             if before.mention in message.content and "is now streaming" in message.content:
+    #                 if isinstance(after.activity, Streaming):
+    #                     return
+    #
+    #         if isinstance(after.activity, Streaming):
+    #             await after.add_roles(role)
+    #             stream_url = after.activity.url
+    #             stream_url_split = stream_url.split(".")
+    #             streaming_service = stream_url_split[1]
+    #             streaming_service = streaming_service.capitalize()
+    #             await channel.send(
+    #                 f":red_circle: **LIVE**\n{before.mention} is now streaming on {streaming_service}!\n{stream_url}")
+    #         elif isinstance(before.activity, Streaming):
+    #             await after.remove_roles(role)
+    #             async for message in channel.history(limit=200):
+    #                 if before.mention in message.content and "is now streaming" in message.content:
+    #                     await message.delete()
+    #         else:
+    #             return
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
@@ -854,9 +855,9 @@ class MetaBot(commands.Cog):
             with open('streamers.json', 'r') as file:
                 streamers = json.loads(file.read())
             if streamers is not None:
-                guild1 = bot.get_guild(762921541204705321)
-                channel = bot.get_channel(776951772107112498)
-                role = get(guild1.roles, id=833876279882285076)
+                guild1 = bot.get_guild(593941391110045697)
+                channel = bot.get_channel(740369106880036965)
+                role = get(guild1.roles, id=800971369441394698)
                 for user_id, twitchname in streamers.items():
                     status = checkuser(twitchname)
                     user = bot.get_user(int(user_id))
