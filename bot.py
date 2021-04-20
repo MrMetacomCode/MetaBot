@@ -1470,6 +1470,7 @@ bot.remove_command("factsendtime")
 bot.remove_command("leavemessage")
 bot.remove_command("test")
 bot.remove_command("jail")
+bot.remove_command("addtwitch")
 bot.add_cog(MetaBot(bot))
 
 print("Server Running.")
