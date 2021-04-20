@@ -6,10 +6,10 @@ import random
 import discord
 import datetime
 import asyncio
-import smtplib
-from email.message import EmailMessage
+import requests
 from discord import Intents
 from discord import Streaming
+from twitchAPI.twitch import Twitch
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -18,7 +18,6 @@ from discord.ext.commands import has_permissions, MissingPermissions
 from apscheduler.triggers.cron import CronTrigger
 from discord.ext import commands, tasks
 from discord.utils import get
-
 # import logging
 
 # logging.basicConfig(level=logging.DEBUG, filename='logs.txt')
@@ -32,6 +31,16 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 intents = Intents.all()
 bot = commands.Bot(command_prefix='$', intents=intents)
+
+client_id = "0di83f47yredvk1029vpev8i6tuyqi"
+client_secret = "o39ocsojaeg5370e7q7hs3w6ugnlss"
+twitch = Twitch(client_id, client_secret)
+twitch.authenticate_app([])
+TWITCH_STREAM_API_ENDPOINT_V5 = "https://api.twitch.tv/kraken/streams/{}"
+API_HEADERS = {
+    'Client-ID': client_id,
+    'Accept': 'application/vnd.twitchtv.v5+json',
+}
 
 creds = None
 if os.path.exists('token.pickle'):
@@ -546,7 +555,7 @@ class MetaBot(commands.Cog):
             await member.add_roles(jail_role)
             await ctx.send(f"{member} has been jailed.")
 
-            await asyncio.sleep(delay=jail_time*3600)
+            await asyncio.sleep(delay=jail_time * 3600)
             for role in roles:
                 role = get(guild.roles, name=role)
                 await member.add_roles(role)
@@ -555,8 +564,8 @@ class MetaBot(commands.Cog):
             jail_ticket_title = jail_ticket_embed.title
             jail_ticket_description = jail_ticket_embed.description
             released_jail_ticket = discord.Embed(title=f"🔓STATUS: RELEASED\n{jail_ticket_title}",
-                                              description=f"{jail_ticket_description}",
-                                              color=0x00ff00)
+                                                 description=f"{jail_ticket_description}",
+                                                 color=0x00ff00)
             await jail_ticket_message.edit(embed=released_jail_ticket)
         else:
             await ctx.send("This command is reserved and hasn't been rolled out for use with all servers.")
@@ -642,6 +651,18 @@ class MetaBot(commands.Cog):
         for emoji in ('⬅️', '➡️'):
             await msg.add_reaction(emoji)
 
+    @bot.command(name='addtwitch', help='Adds your Twitch to the live notifs.', pass_context=True)
+    async def add_twitch(self, ctx, twitch_name):
+        with open('streamers.json', 'r') as file:
+            streamers = json.loads(file.read())
+
+        user_id = ctx.author.id
+        streamers[user_id] = twitch_name
+
+        with open('streamers.json', 'w') as file:
+            file.write(json.dumps(streamers))
+        await ctx.send(f"Added {twitch_name} for {ctx.author} to the notifications list.")
+
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
         if after.guild.id == 593941391110045697:
@@ -662,7 +683,8 @@ class MetaBot(commands.Cog):
                 stream_url_split = stream_url.split(".")
                 streaming_service = stream_url_split[1]
                 streaming_service = streaming_service.capitalize()
-                await channel.send(f":red_circle: **LIVE**\n{before.mention} is now streaming on {streaming_service}!\n{stream_url}")
+                await channel.send(
+                    f":red_circle: **LIVE**\n{before.mention} is now streaming on {streaming_service}!\n{stream_url}")
             elif isinstance(before.activity, Streaming):
                 await after.remove_roles(role)
                 async for message in channel.history(limit=200):
@@ -806,6 +828,60 @@ class MetaBot(commands.Cog):
 
         # Starting the scheduler
         scheduler.start()
+
+        # Returns true if Twitch user is live, else returns false
+        def checkuser(user):
+            try:
+                userid = twitch.get_users(logins=[user])['data'][0]['id']
+                url = TWITCH_STREAM_API_ENDPOINT_V5.format(userid)
+                try:
+                    req = requests.Session().get(url, headers=API_HEADERS)
+                    jsondata = req.json()
+                    if 'stream' in jsondata:
+                        if jsondata['stream'] is not None:
+                            return True
+                        else:
+                            return False
+                except Exception as e:
+                    print("Error checking user: ", e)
+                    return False
+            except IndexError:
+                return False
+
+        # Checks if Twitch users are live and sends a message if they are.
+        @tasks.loop(seconds=10)
+        async def live_notifs_loop():
+            with open('streamers.json', 'r') as file:
+                streamers = json.loads(file.read())
+            if streamers is not None:
+                guild1 = bot.get_guild(762921541204705321)
+                channel = bot.get_channel(776951772107112498)
+                role = get(guild1.roles, id=833876279882285076)
+                for user_id, twitchname in streamers.items():
+                    status = checkuser(twitchname)
+                    user = bot.get_user(int(user_id))
+                    if status is True:
+                        async for message in channel.history(limit=200):
+                            if str(user.mention) in message.content and "is now streaming" in message.content:
+                                break
+                            else:
+                                async for member in guild1.fetch_members(limit=None):
+                                    if member.id == int(user_id):
+                                        await member.add_roles(role)
+                                await channel.send(
+                                    f":red_circle: **LIVE**\n{user.mention} is now streaming on Twitch!"
+                                    f"\nhttps://www.twitch.tv/{twitchname}")
+                                print(f"{user} started streaming. Sending a notification.")
+                                break
+                    else:
+                        async for member in guild1.fetch_members(limit=None):
+                            if member.id == int(user_id):
+                                await member.remove_roles(role)
+                        async for message in channel.history(limit=200):
+                            if str(user.mention) in message.content and "is now streaming" in message.content:
+                                await message.delete()
+
+        live_notifs_loop.start()
 
     def update_react_message(self, guild_settings, guild_id):
         role_display = ""
