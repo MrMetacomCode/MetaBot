@@ -661,7 +661,7 @@ class MetaBot(commands.Cog):
 
         with open('streamers.json', 'w') as file:
             file.write(json.dumps(streamers))
-        await ctx.send(f"Added {twitch_name} for {ctx.author} to the notifications list.")
+        await ctx.send(f"Added {twitch_name} for {ctx.author} to the Twitch notifications list.")
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
