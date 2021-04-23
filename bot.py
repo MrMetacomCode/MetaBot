@@ -32,8 +32,8 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 intents = Intents.all()
 bot = commands.Bot(command_prefix='$', intents=intents)
 
-client_id = "0di83f47yredvk1029vpev8i6tuyqi"
-client_secret = "o39ocsojaeg5370e7q7hs3w6ugnlss"
+client_id = os.getenv('client_id')
+client_secret = os.getenv('client_secret')
 twitch = Twitch(client_id, client_secret)
 twitch.authenticate_app([])
 TWITCH_STREAM_API_ENDPOINT_V5 = "https://api.twitch.tv/kraken/streams/{}"
