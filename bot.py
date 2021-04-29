@@ -501,6 +501,13 @@ class MetaBot(commands.Cog):
 
             general_channel = bot.get_channel(593941391110045699)
             await general_channel.send(f"{member} has been jailed for {jail_time} {jail_time_type.lower()}.")
+
+            # If the user is in a voice chat, disconnect them.
+            if ctx.member.voice is None:
+                pass
+            else:
+                await member.move_to(None)
+
             now = datetime.datetime.now()
             guild = ctx.guild
             jail_channel = bot.get_channel(773397004868649010)
