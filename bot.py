@@ -503,7 +503,7 @@ class MetaBot(commands.Cog):
             await general_channel.send(f"{member} has been jailed for {jail_time} {jail_time_type.lower()}.")
 
             # If the user is in a voice chat, disconnect them.
-            if ctx.member.voice is None:
+            if member.voice is None:
                 pass
             else:
                 await member.move_to(None)
