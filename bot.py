@@ -18,6 +18,7 @@ from discord.ext.commands import has_permissions, MissingPermissions
 from apscheduler.triggers.cron import CronTrigger
 from discord.ext import commands, tasks
 from discord.utils import get
+
 # import logging
 
 # logging.basicConfig(level=logging.DEBUG, filename='logs.txt')
@@ -32,16 +33,22 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 intents = Intents.all()
 bot = commands.Bot(command_prefix='$', intents=intents)
 
+# Authentication with Twitch API.
 client_id = os.getenv('client_id')
 client_secret = os.getenv('client_secret')
-twitch = Twitch(client_id, client_secret)
-twitch.authenticate_app([])
-TWITCH_STREAM_API_ENDPOINT_V5 = "https://api.twitch.tv/kraken/streams/{}"
-API_HEADERS = {
+body = {
+    'client_id': client_id,
+    'client_secret': client_secret,
+    "grant_type": 'client_credentials'
+}
+r = requests.post('https://id.twitch.tv/oauth2/token', body)
+keys = r.json()
+headers = {
     'Client-ID': client_id,
-    'Accept': 'application/vnd.twitchtv.v5+json',
+    'Authorization': 'Bearer ' + keys['access_token']
 }
 
+# Authentication with the Google Sheets API.
 creds = None
 if os.path.exists('token.pickle'):
     with open('token.pickle', 'rb') as token:
@@ -837,58 +844,78 @@ class MetaBot(commands.Cog):
         # Starting the scheduler
         scheduler.start()
 
-        # Returns true if Twitch user is live, else returns false
-        def checkuser(user):
-            try:
-                userid = twitch.get_users(logins=[user])['data'][0]['id']
-                url = TWITCH_STREAM_API_ENDPOINT_V5.format(userid)
-                try:
-                    req = requests.Session().get(url, headers=API_HEADERS)
-                    jsondata = req.json()
-                    if 'stream' in jsondata:
-                        if jsondata['stream'] is not None:
-                            return True
-                        else:
-                            return False
-                except Exception as e:
-                    print("Error checking user: ", e)
-                    return False
-            except IndexError:
-                return False
+        # Returns true if online, false if not.
+        def checkuser(streamer_name):
+            stream = requests.get('https://api.twitch.tv/helix/streams?user_login=' + streamer_name, headers=headers)
+            stream_data = stream.json()
+
+            if len(stream_data['data']) == 1:
+                return True, stream_data
+            else:
+                return False, stream_data
 
         # Checks if Twitch users are live and sends a message if they are.
         @tasks.loop(seconds=10)
         async def live_notifs_loop():
+            # username = stream_data['data'][0]['user_name']
+            # stream_title = stream_data['data'][0]['title']
+            # game_being_played = stream_data['data'][0]['game_name']
+
+            # Opens and reads the json file
             with open('streamers.json', 'r') as file:
                 streamers = json.loads(file.read())
+            # Makes sure the json isn't empty before continuing.
             if streamers is not None:
-                guild1 = bot.get_guild(593941391110045697)
+                # Gets the guild, 'twitch streams' channel, and streaming role.
+                guild = bot.get_guild(593941391110045697)
                 channel = bot.get_channel(740369106880036965)
-                role = get(guild1.roles, id=800971369441394698)
-                for user_id, twitchname in streamers.items():
-                    status = checkuser(twitchname)
+                role = get(guild.roles, id=800971369441394698)
+                # Loops through the json and gets the key,value which in this case is the user_id and twitch_name of
+                # every item in the json.
+                for user_id, twitch_name in streamers.items():
+                    # Takes the given twitch_name and checks it using the checkuser function to see if they're live.
+                    # Returns either true or false.
+                    status, stream_data = checkuser(twitch_name)
+                    # Gets the user using the collected user_id in the json
                     user = bot.get_user(int(user_id))
+                    # Makes sure they're live
                     if status is True:
+                        # Checks to see if the live message has already been sent.
                         async for message in channel.history(limit=200):
-                            if str(user.mention) in message.content and "is now streaming" in message.content:
+                            # If it has, break the loop (do nothing).
+                            if str(user.mention) in message.content and "is now playing" in message.content:
                                 break
+                            # If it hasn't, assign them the streaming role and send the message.
                             else:
-                                async for member in guild1.fetch_members(limit=None):
+                                # Gets all the members in your guild.
+                                async for member in guild.fetch_members(limit=None):
+                                    # If one of the id's of the members in your guild matches the one from the json and
+                                    # they're live, give them the streaming role.
                                     if member.id == int(user_id):
                                         await member.add_roles(role)
+                                # Sends the live notification to the 'twitch streams' channel then breaks the loop.
                                 await channel.send(
-                                    f":red_circle: **LIVE**\n{user.mention} is now streaming on Twitch!"
-                                    f"\nhttps://www.twitch.tv/{twitchname}")
+                                    f":red_circle: **LIVE**\n{user.mention} is now playing {stream_data['data'][0]['game_name']} on Twitch!"
+                                    f"\n{stream_data['data'][0]['title']}"
+                                    f"\nhttps://www.twitch.tv/{twitch_name}")
                                 print(f"{user} started streaming. Sending a notification.")
                                 break
+                    # If they aren't live do this:
                     else:
-                        async for member in guild1.fetch_members(limit=None):
+                        # Gets all the members in your guild.
+                        async for member in guild.fetch_members(limit=None):
+                            # If one of the id's of the members in your guild matches the one from the json and
+                            # they're not live, remove the streaming role.
                             if member.id == int(user_id):
                                 await member.remove_roles(role)
+                        # Checks to see if the live notification was sent.
                         async for message in channel.history(limit=200):
-                            if str(user.mention) in message.content and "is now streaming" in message.content:
+                            # If it was, delete it.
+                            if user.mention in message.content and "is now playing" in message.content:
+                                print(f"{user} stopped streaming. Removing the notification.")
                                 await message.delete()
 
+        # Start your loop.
         live_notifs_loop.start()
 
     def update_react_message(self, guild_settings, guild_id):
