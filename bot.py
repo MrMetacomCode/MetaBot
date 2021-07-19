@@ -3,10 +3,12 @@ import os.path
 import json
 import pickle
 import random
+import aiohttp
 import discord
 import datetime
 import asyncio
 import requests
+from io import BytesIO
 from discord import Intents
 from discord import Streaming
 from twitchAPI.twitch import Twitch
@@ -18,12 +20,6 @@ from discord.ext.commands import has_permissions, MissingPermissions
 from apscheduler.triggers.cron import CronTrigger
 from discord.ext import commands, tasks
 from discord.utils import get
-
-# import logging
-
-# logging.basicConfig(level=logging.DEBUG, filename='logs.txt')
-# logger = logging.getLogger(__name__)
-# logger.debug('test')
 
 # TESTINGBOT_DISCORD_TOKEN
 TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
@@ -677,37 +673,6 @@ class MetaBot(commands.Cog):
             file.write(json.dumps(streamers))
         await ctx.send(f"Added {twitch_name} for {ctx.author} to the Twitch notifications list.")
 
-    # Old way of sending Twitch notifs using on_member_update **UNRELIABLE**
-    # @commands.Cog.listener()
-    # async def on_member_update(self, before, after):
-    #     if after.guild.id == 593941391110045697:
-    #         if before.activity == after.activity:
-    #             return
-    #
-    #         role = get(after.guild.roles, id=800971369441394698)
-    #         channel = get(after.guild.channels, id=740369106880036965)
-    #
-    #         async for message in channel.history(limit=200):
-    #             if before.mention in message.content and "is now streaming" in message.content:
-    #                 if isinstance(after.activity, Streaming):
-    #                     return
-    #
-    #         if isinstance(after.activity, Streaming):
-    #             await after.add_roles(role)
-    #             stream_url = after.activity.url
-    #             stream_url_split = stream_url.split(".")
-    #             streaming_service = stream_url_split[1]
-    #             streaming_service = streaming_service.capitalize()
-    #             await channel.send(
-    #                 f":red_circle: **LIVE**\n{before.mention} is now streaming on {streaming_service}!\n{stream_url}")
-    #         elif isinstance(before.activity, Streaming):
-    #             await after.remove_roles(role)
-    #             async for message in channel.history(limit=200):
-    #                 if before.mention in message.content and "is now streaming" in message.content:
-    #                     await message.delete()
-    #         else:
-    #             return
-
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
         ### Second part of list facts ###
@@ -804,6 +769,26 @@ class MetaBot(commands.Cog):
                 await channel.send(random_choice)
 
     @commands.Cog.listener()
+    async def on_member_update(self, before, after):
+        if after.guild.id == 593941391110045697 or after.guild.id == 762921541204705321:
+            with open('streamers.json', 'r') as file:
+                streamers = json.loads(file.read())
+            if before.activity == after.activity:
+                return
+
+            if isinstance(after.activity, Streaming) is False:
+                return
+            if isinstance(after.activity, Streaming):
+                twitch_name = after.activity.twitch_name
+                user_id = after.id
+                if str(user_id) not in streamers and twitch_name not in streamers:
+                    streamers[user_id] = twitch_name
+                    print(f"Added streamer {twitch_name} to streamers.json")
+
+            with open('streamers.json', 'w') as file:
+                file.write(json.dumps(streamers))
+
+    @commands.Cog.listener()
     async def on_ready(self):
         print("Bot is ready.")
         print(f"Total servers: {len(bot.guilds)}")
@@ -854,66 +839,54 @@ class MetaBot(commands.Cog):
             else:
                 return False, stream_data
 
-        # Checks if Twitch users are live and sends a message if they are.
+        async def has_notif_already_sent(channel, user):
+            async for message in channel.history(limit=200):
+                if f"{user.mention} is now playing" in message.content:
+                    return message
+            else:
+                return False
+
+        # Defines a loop that will run every 10 seconds (checks for live users every 10 seconds).
         @tasks.loop(seconds=10)
         async def live_notifs_loop():
-            # username = stream_data['data'][0]['user_name']
-            # stream_title = stream_data['data'][0]['title']
-            # game_being_played = stream_data['data'][0]['game_name']
-
-            # Opens and reads the json file
             with open('streamers.json', 'r') as file:
                 streamers = json.loads(file.read())
-            # Makes sure the json isn't empty before continuing.
             if streamers is not None:
-                # Gets the guild, 'twitch streams' channel, and streaming role.
                 guild = bot.get_guild(593941391110045697)
                 channel = bot.get_channel(740369106880036965)
                 role = get(guild.roles, id=800971369441394698)
-                # Loops through the json and gets the key,value which in this case is the user_id and twitch_name of
-                # every item in the json.
                 for user_id, twitch_name in streamers.items():
-                    # Takes the given twitch_name and checks it using the checkuser function to see if they're live.
-                    # Returns either true or false.
+                    selected_member = ""
+                    async for member in guild.fetch_members(limit=None):
+                        if member.id == int(user_id):
+                            selected_member = member
                     status, stream_data = checkuser(twitch_name)
-                    # Gets the user using the collected user_id in the json
                     user = bot.get_user(int(user_id))
-                    # Makes sure they're live
                     if status is True:
-                        # Checks to see if the live message has already been sent.
-                        async for message in channel.history(limit=200):
-                            # If it has, break the loop (do nothing).
-                            if str(user.mention) in message.content and "is now playing" in message.content:
-                                break
-                            # If it hasn't, assign them the streaming role and send the message.
-                            else:
-                                # Gets all the members in your guild.
-                                async for member in guild.fetch_members(limit=None):
-                                    # If one of the id's of the members in your guild matches the one from the json and
-                                    # they're live, give them the streaming role.
-                                    if member.id == int(user_id):
-                                        await member.add_roles(role)
-                                # Sends the live notification to the 'twitch streams' channel then breaks the loop.
-                                await channel.send(
-                                    f":red_circle: **LIVE**\n{user.mention} is now playing {stream_data['data'][0]['game_name']} on Twitch!"
-                                    f"\n{stream_data['data'][0]['title']}"
-                                    f"\nhttps://www.twitch.tv/{twitch_name}")
-                                print(f"{user} started streaming. Sending a notification.")
-                                break
-                    # If they aren't live do this:
+                        thumbnail_url_first_part = stream_data['data'][0]['thumbnail_url'].split('{')
+                        full_thumbnail_url = f"{thumbnail_url_first_part[0]}1920x1080.jpg"
+                        message = await has_notif_already_sent(channel, user)
+                        if message is not False:
+                            continue
+                        if selected_member != "":
+                            await selected_member.add_roles(role)
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(full_thumbnail_url) as resp:
+                                buffer = BytesIO(await resp.read())
+                        await channel.send(
+                            f":red_circle: **LIVE**"
+                            f"\n{user.mention} is now playing {stream_data['data'][0]['game_name']} on Twitch!"
+                            f"\n{stream_data['data'][0]['title']}",
+                            file=discord.File(fp=buffer, filename="thumbnail.jpg"))
+                        print(f"{user} started streaming. Sending a notification.")
+                        continue
                     else:
-                        # Gets all the members in your guild.
-                        async for member in guild.fetch_members(limit=None):
-                            # If one of the id's of the members in your guild matches the one from the json and
-                            # they're not live, remove the streaming role.
-                            if member.id == int(user_id):
-                                await member.remove_roles(role)
-                        # Checks to see if the live notification was sent.
-                        async for message in channel.history(limit=200):
-                            # If it was, delete it.
-                            if user.mention in message.content and "is now playing" in message.content:
-                                print(f"{user} stopped streaming. Removing the notification.")
-                                await message.delete()
+                        if selected_member != "":
+                            await selected_member.remove_roles(role)
+                        message = await has_notif_already_sent(channel, user)
+                        if message is not False:
+                            print(f"{user} stopped streaming. Removing the notification.")
+                            await message.delete()
 
         # Start your loop.
         live_notifs_loop.start()
@@ -1509,5 +1482,4 @@ bot.remove_command("addtwitch")
 bot.add_cog(MetaBot(bot))
 
 print("Server Running.")
-
 bot.run(TOKEN)
