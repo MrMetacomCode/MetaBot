@@ -839,6 +839,9 @@ class MetaBot(commands.Cog):
                     return True, stream_data
                 else:
                     return False, stream_data
+            else:
+                stream_data = None
+                return False, stream_data
 
         async def has_notif_already_sent(channel, user):
             async for message in channel.history(limit=200):
@@ -881,7 +884,7 @@ class MetaBot(commands.Cog):
                             file=discord.File(fp=buffer, filename="thumbnail.jpg"))
                         print(f"{user} started streaming. Sending a notification.")
                         continue
-                    else:
+                    elif stream_data is not None:
                         if selected_member != "":
                             await selected_member.remove_roles(role)
                         message = await has_notif_already_sent(channel, user)
