@@ -832,12 +832,13 @@ class MetaBot(commands.Cog):
         # Returns true if online, false if not.
         def checkuser(streamer_name):
             stream = requests.get('https://api.twitch.tv/helix/streams?user_login=' + streamer_name, headers=headers)
-            stream_data = stream.json()
+            if str(stream) == '<Response [200]>':
+                stream_data = stream.json()
 
-            if len(stream_data['data']) == 1:
-                return True, stream_data
-            else:
-                return False, stream_data
+                if len(stream_data['data']) == 1:
+                    return True, stream_data
+                else:
+                    return False, stream_data
 
         async def has_notif_already_sent(channel, user):
             async for message in channel.history(limit=200):
