@@ -801,7 +801,7 @@ class MetaBot(commands.Cog):
         try:
             stream = requests.get('https://api.twitch.tv/helix/streams?user_login=' + streamer_name,
                                   headers=headers)
-            if str(stream) == '<Response [200]>':
+            if streamer_name is not None and str(stream) == '<Response [200]>':
                 stream_data = stream.json()
 
                 if len(stream_data['data']) == 1:
