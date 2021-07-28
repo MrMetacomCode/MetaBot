@@ -12,6 +12,7 @@ from io import BytesIO
 from discord import Intents
 from discord import Streaming
 from twitchAPI.twitch import Twitch
+from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -788,6 +789,85 @@ class MetaBot(commands.Cog):
             with open('streamers.json', 'w') as file:
                 file.write(json.dumps(streamers))
 
+    # Logs exception to .txt file.
+    def log_and_print_exception(self, e):
+        logging_file = open("log.txt", "a")
+        logging_file.write(f"{datetime.now()}\n{str(e)}\n\n")
+        logging_file.close()
+        print(f"Exception logged. Error:\n{e}")
+
+    # Returns true if online, false if not.
+    def checkuser(self, streamer_name):
+        try:
+            stream = requests.get('https://api.twitch.tv/helix/streams?user_login=' + streamer_name,
+                                  headers=headers)
+            if str(stream) == '<Response [200]>':
+                stream_data = stream.json()
+
+                if len(stream_data['data']) == 1:
+                    return True, stream_data
+                else:
+                    return False, stream_data
+            else:
+                stream_data = None
+                return False, stream_data
+        except Exception as e:
+            self.log_and_print_exception(e)
+            stream_data = None
+            return False, stream_data
+
+    async def has_notif_already_sent(self, channel, user):
+        async for message in channel.history(limit=200):
+            if f"{user.mention} is now playing" in message.content:
+                return message
+        else:
+            return False
+
+    # Defines a loop that will run every 10 seconds (checks for live users every 10 seconds).
+    @tasks.loop(seconds=10)
+    async def live_notifs_loop(self):
+        with open('streamers.json', 'r') as file:
+            streamers = json.loads(file.read())
+        try:
+            if streamers is not None:
+                guild = bot.get_guild(593941391110045697)
+                channel = bot.get_channel(740369106880036965)
+                role = get(guild.roles, id=800971369441394698)
+                for user_id, twitch_name in streamers.items():
+                    selected_member = ""
+                    async for member in guild.fetch_members(limit=None):
+                        if member.id == int(user_id):
+                            selected_member = member
+                    status, stream_data = self.checkuser(twitch_name)
+                    user = bot.get_user(int(user_id))
+                    if status is True:
+                        thumbnail_url_first_part = stream_data['data'][0]['thumbnail_url'].split('{')
+                        full_thumbnail_url = f"{thumbnail_url_first_part[0]}1920x1080.jpg"
+                        message = await self.has_notif_already_sent(channel, user)
+                        if message is not False:
+                            continue
+                        if selected_member != "":
+                            await selected_member.add_roles(role)
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(full_thumbnail_url) as resp:
+                                buffer = BytesIO(await resp.read())
+                        await channel.send(
+                            f":red_circle: **LIVE**"
+                            f"\n{user.mention} is now playing {stream_data['data'][0]['game_name']} on Twitch!"
+                            f"\n{stream_data['data'][0]['title']}",
+                            file=discord.File(fp=buffer, filename="thumbnail.jpg"))
+                        print(f"{user} started streaming. Sending a notification.")
+                        continue
+                    elif stream_data is not None:
+                        if selected_member != "":
+                            await selected_member.remove_roles(role)
+                        message = await self.has_notif_already_sent(channel, user)
+                        if message is not False:
+                            print(f"{user} stopped streaming. Removing the notification.")
+                            await message.delete()
+        except TypeError as e:
+            self.log_and_print_exception(e)
+
     @commands.Cog.listener()
     async def on_ready(self):
         print("Bot is ready.")
@@ -829,71 +909,8 @@ class MetaBot(commands.Cog):
         # Starting the scheduler
         scheduler.start()
 
-        # Returns true if online, false if not.
-        def checkuser(streamer_name):
-            stream = requests.get('https://api.twitch.tv/helix/streams?user_login=' + streamer_name, headers=headers)
-            if str(stream) == '<Response [200]>':
-                stream_data = stream.json()
-
-                if len(stream_data['data']) == 1:
-                    return True, stream_data
-                else:
-                    return False, stream_data
-            else:
-                stream_data = None
-                return False, stream_data
-
-        async def has_notif_already_sent(channel, user):
-            async for message in channel.history(limit=200):
-                if f"{user.mention} is now playing" in message.content:
-                    return message
-            else:
-                return False
-
-        # Defines a loop that will run every 10 seconds (checks for live users every 10 seconds).
-        @tasks.loop(seconds=10)
-        async def live_notifs_loop():
-            with open('streamers.json', 'r') as file:
-                streamers = json.loads(file.read())
-            if streamers is not None:
-                guild = bot.get_guild(593941391110045697)
-                channel = bot.get_channel(740369106880036965)
-                role = get(guild.roles, id=800971369441394698)
-                for user_id, twitch_name in streamers.items():
-                    selected_member = ""
-                    async for member in guild.fetch_members(limit=None):
-                        if member.id == int(user_id):
-                            selected_member = member
-                    status, stream_data = checkuser(twitch_name)
-                    user = bot.get_user(int(user_id))
-                    if status is True:
-                        thumbnail_url_first_part = stream_data['data'][0]['thumbnail_url'].split('{')
-                        full_thumbnail_url = f"{thumbnail_url_first_part[0]}1920x1080.jpg"
-                        message = await has_notif_already_sent(channel, user)
-                        if message is not False:
-                            continue
-                        if selected_member != "":
-                            await selected_member.add_roles(role)
-                        async with aiohttp.ClientSession() as session:
-                            async with session.get(full_thumbnail_url) as resp:
-                                buffer = BytesIO(await resp.read())
-                        await channel.send(
-                            f":red_circle: **LIVE**"
-                            f"\n{user.mention} is now playing {stream_data['data'][0]['game_name']} on Twitch!"
-                            f"\n{stream_data['data'][0]['title']}",
-                            file=discord.File(fp=buffer, filename="thumbnail.jpg"))
-                        print(f"{user} started streaming. Sending a notification.")
-                        continue
-                    elif stream_data is not None:
-                        if selected_member != "":
-                            await selected_member.remove_roles(role)
-                        message = await has_notif_already_sent(channel, user)
-                        if message is not False:
-                            print(f"{user} stopped streaming. Removing the notification.")
-                            await message.delete()
-
         # Start your loop.
-        live_notifs_loop.start()
+        self.live_notifs_loop.start()
 
     def update_react_message(self, guild_settings, guild_id):
         role_display = ""
