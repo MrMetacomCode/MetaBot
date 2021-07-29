@@ -854,7 +854,8 @@ class MetaBot(commands.Cog):
                         await channel.send(
                             f":red_circle: **LIVE**"
                             f"\n{user.mention} is now playing {stream_data['data'][0]['game_name']} on Twitch!"
-                            f"\n{stream_data['data'][0]['title']}",
+                            f"\n{stream_data['data'][0]['title']}"
+                            f"\n<https://www.twitch.tv/{twitch_name}>",
                             file=discord.File(fp=buffer, filename="thumbnail.jpg"))
                         print(f"{user} started streaming. Sending a notification.")
                         continue
