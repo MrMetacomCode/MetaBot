@@ -688,28 +688,29 @@ class MetaBot(commands.Cog):
         msg = reaction.message
         embed_title = msg.embeds[0].title
         embed_description = msg.embeds[0].description
-        try:
-            facts_page = embed_description[5]
-            facts_page = int(facts_page)
-        except ValueError:
-            facts_page = 1
-        if embed_title == "Here are the random facts that will send at your given time periods:" and user.id != 753479351139303484:
-            await msg.remove_reaction(reaction, user)
-            if str(reaction) == "⬅️" and facts_page >= 2:
-                facts_page -= 1
-            if str(reaction) == "➡️" and facts_page <= len(facts[::8]) - 1:
-                facts_page += 1
+        if embed_title == "Here are the random facts that will send at your given time periods:":
+            try:
+                facts_page = embed_description[5]
+                facts_page = int(facts_page)
+            except ValueError:
+                facts_page = 1
+            if embed_title == "Here are the random facts that will send at your given time periods:" and user.id != 753479351139303484:
+                await msg.remove_reaction(reaction, user)
+                if str(reaction) == "⬅️" and facts_page >= 2:
+                    facts_page -= 1
+                if str(reaction) == "➡️" and facts_page <= len(facts[::8]) - 1:
+                    facts_page += 1
 
-        max_iteration = 8 * facts_page
-        min_iteration = 8 * (facts_page - 1)
-        fact_list = facts[min_iteration:max_iteration]
-        for fact in fact_list:
-            facts_display += f"{fact}\n\n"
-        embedvar = discord.Embed(title=f"Here are the random facts that will send at your given time "
-                                       f"periods:",
-                                 description=f"Page {facts_page}\n" + facts_display,
-                                 color=0x00ff00)
-        await msg.edit(embed=embedvar)
+            max_iteration = 8 * facts_page
+            min_iteration = 8 * (facts_page - 1)
+            fact_list = facts[min_iteration:max_iteration]
+            for fact in fact_list:
+                facts_display += f"{fact}\n\n"
+            embedvar = discord.Embed(title=f"Here are the random facts that will send at your given time "
+                                           f"periods:",
+                                     description=f"Page {facts_page}\n" + facts_display,
+                                     color=0x00ff00)
+            await msg.edit(embed=embedvar)
         ### End of second part of list facts ###
 
     @bot.command(name='factsendtime', aliases=['factssendtime', 'facttime', 'factstime'], help='Set a time for a '
@@ -799,15 +800,16 @@ class MetaBot(commands.Cog):
     # Returns true if online, false if not.
     def checkuser(self, streamer_name):
         try:
-            stream = requests.get('https://api.twitch.tv/helix/streams?user_login=' + streamer_name,
-                                  headers=headers)
-            if streamer_name is not None and str(stream) == '<Response [200]>':
-                stream_data = stream.json()
+            if streamer_name is not None:
+                stream = requests.get('https://api.twitch.tv/helix/streams?user_login=' + streamer_name,
+                                      headers=headers)
+                if str(stream) == '<Response [200]>':
+                    stream_data = stream.json()
 
-                if len(stream_data['data']) == 1:
-                    return True, stream_data
-                else:
-                    return False, stream_data
+                    if len(stream_data['data']) == 1:
+                        return True, stream_data
+                    else:
+                        return False, stream_data
             else:
                 stream_data = None
                 return False, stream_data
@@ -818,10 +820,13 @@ class MetaBot(commands.Cog):
 
     async def has_notif_already_sent(self, channel, user):
         async for message in channel.history(limit=200):
-            if f"{user.mention} is now playing" in message.content:
-                return message
-        else:
-            return False
+            if user is not None:
+                if f"{user.mention} is now playing" in message.content:
+                    return message
+                else:
+                    return False
+            else:
+                return False
 
     # Defines a loop that will run every 10 seconds (checks for live users every 10 seconds).
     @tasks.loop(seconds=10)
@@ -1015,7 +1020,7 @@ class MetaBot(commands.Cog):
         member = get(guild.members, id=payload.user_id)
 
         if payload.channel_id == guild_settings[guild_id]["role_reaction_channel_id"] and payload.message_id == \
-                guild_settings[guild_id]["react_message_id"]:
+                guild_settings[guild_id]["react_message_id"] and member.bot is False:
             if str(payload.emoji) in guild_settings[guild_id]["roles"]:
                 role = get(payload.member.guild.roles, name=guild_settings[guild_id]["roles"][str(payload.emoji)])
                 if role is not None:
