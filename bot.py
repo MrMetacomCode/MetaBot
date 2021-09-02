@@ -5,7 +5,6 @@ import pickle
 import random
 import aiohttp
 import discord
-import datetime
 import asyncio
 import requests
 from io import BytesIO
@@ -512,7 +511,7 @@ class MetaBot(commands.Cog):
             else:
                 await member.move_to(None)
 
-            now = datetime.datetime.now()
+            now = datetime.now()
             guild = ctx.guild
             jail_channel = bot.get_channel(773397004868649010)
             roles = []
@@ -553,7 +552,7 @@ class MetaBot(commands.Cog):
                 new_time = f"{hour}:{minute}{morning_or_night}"
                 now = f"{new_date} at {new_time}"
             except:
-                now = datetime.datetime.now()
+                now = datetime.now()
 
             jail_ticket_embed = discord.Embed(title=f"{member} has been jailed on {now}",
                                               description=f"Reason: {reason}\nYou will be released in: {jail_time} {jail_time_type}",
@@ -1048,7 +1047,7 @@ class MetaBot(commands.Cog):
     async def on_member_join(self, member):
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
-        now = datetime.datetime.now()
+        now = datetime.now()
         guild_id = str(member.guild.id)
         guild = bot.get_guild(member.guild.id)
         member_count = guild.member_count
@@ -1069,7 +1068,7 @@ class MetaBot(commands.Cog):
     async def on_member_remove(self, member):
         with open('guild_settings.json', 'r') as file:
             guild_settings = json.loads(file.read())
-        now = datetime.datetime.now()
+        now = datetime.now()
         guild_id = str(member.guild.id)
         guild = bot.get_guild(member.guild.id)
         member_count = guild.member_count
