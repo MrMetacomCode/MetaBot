@@ -787,7 +787,11 @@ class MetaBot(commands.Cog):
             if isinstance(after.activity, Streaming):
                 twitch_name = after.activity.twitch_name
                 user_id = after.id
-                if str(user_id) not in streamers and twitch_name not in streamers:
+                does_twitch_name_exist = False
+                for user_id_, twitch_name_ in streamers.items():
+                    if twitch_name == twitch_name_:
+                        does_twitch_name_exist = True
+                if user_id not in streamers and does_twitch_name_exist is False:
                     streamers[user_id] = twitch_name
                     print(f"Added streamer {twitch_name} to streamers.json")
 
