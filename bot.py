@@ -7,6 +7,7 @@ import aiohttp
 import discord
 import asyncio
 import requests
+import randfacts
 from io import BytesIO
 from discord import Intents
 from discord import Streaming
@@ -663,6 +664,10 @@ class MetaBot(commands.Cog):
 
     @bot.command(name='addtwitch', help='Adds your Twitch to the live notifs.', pass_context=True)
     async def add_twitch(self, ctx, twitch_name):
+        if ctx.guild.id == 762921541204705321:
+            await ctx.send("If you're here to just plug your Twitch and leave, sincerely fuck off. Otherwise, "
+                           "feel free to stick around or ask for help :P.")
+            return
         with open('streamers.json', 'r') as file:
             streamers = json.loads(file.read())
 
