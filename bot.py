@@ -730,7 +730,7 @@ bot.add_cog(MetaBot(bot))
 
 async def main():
     await bot.login(TOKEN)
-    await bot.register_application_commands()
+    # await bot.register_application_commands()
     await bot.connect()
 
 
