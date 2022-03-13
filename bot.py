@@ -256,7 +256,7 @@ async def schedule_random_facts():
     if os.path.isfile('GuildSettings.db'):
         for guild in bot.guilds:
             send_time = get_fact_send_time(guild.id)
-            if len(send_time) > 0:
+            if send_time is not None and len(send_time) > 0:
                 hour = send_time[0]
                 minute = send_time[1]
 
@@ -265,10 +265,11 @@ async def schedule_random_facts():
                     await random_facts_channel.send(string_to_embed(f"{randfacts.get_fact()}."))
 
                 scheduler.add_job(func, CronTrigger(hour=hour, minute=minute, second=0))
-                scheduler.start()
     else:
         print("Database file does not exist.")
         exit()
+
+    scheduler.start()
 
 
 class MetaBot(commands.Cog):
@@ -716,6 +717,11 @@ bot.remove_command("guess")
 bot.remove_command("happybirthday")
 bot.remove_command("add reaction role")
 bot.remove_command("remove reaction role")
+bot.remove_command("insert role reaction message")
+bot.remove_command("insert member count")
+bot.remove_command("set leave messages channel")
+bot.remove_command("change leave message")
+bot.remove_command("set random facts channel")
 bot.remove_command("fact send time")
 bot.remove_command("leave message")
 bot.remove_command("addtwitch")
