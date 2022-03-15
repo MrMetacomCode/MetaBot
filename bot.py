@@ -621,6 +621,8 @@ async def insert_rr_message(ctx):
             await react_message.add_reaction(role[1])
 
         update_guild_role_reaction_settings(guild_id, message_channel_id, react_message.id)
+        msg = await ctx.interaction.followup.send(embed=string_to_embed(f"Interaction message has been sent. This message will delete."), ephemeral=True)
+        await msg.delete(delay=5)
     else:
         await ctx.send(
             "MetaBot is now using slash commands! Simply type / and it will bring up the list of commands to use. "
@@ -651,6 +653,9 @@ async def insert_member_count(ctx):
         member_message = await ctx.channel.send(embed=embedvar)
 
         update_guild_member_count_settings(guild_id, ctx.channel.id, member_message.id)
+        msg = await ctx.interaction.followup.send(
+            embed=string_to_embed(f"Member count message has been sent. This message will delete."), ephemeral=True)
+        await msg.delete(delay=5)
     else:
         await ctx.send(
             "MetaBot is now using slash commands! Simply type / and it will bring up the list of commands to use. "
