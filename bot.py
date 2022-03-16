@@ -31,6 +31,7 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 intents = Intents.all()
 bot = commands.Bot(command_prefix='$', intents=intents)
+bot.scheduler = AsyncIOScheduler()
 
 # Authentication with Twitch API.
 client_id = os.getenv('client_id')
@@ -51,15 +52,37 @@ conn = sqlite3.connect('GuildSettings.db')
 c = conn.cursor()
 
 
-def get_all_guild_settings(guild_id):
+def get_all_guild_ids():
     with conn:
-        c.execute(f"SELECT * FROM Guilds WHERE GuildID={guild_id}")
-        return c.fetchone()
+        c.execute(f"SELECT GuildID FROM Guilds")
+        return c.fetchall()
+
+
+def get_table_column_names(table_name):
+    table_column_names = []
+    with conn:
+        c.execute(f"PRAGMA table_info({table_name})")
+        columns = c.fetchall()
+
+    if columns is not None:
+        for column in columns:
+            table_column_names.append(column[1])
+
+    return table_column_names
+
+
+def get_guild_settings(guild_id, *settings):
+    column_names = get_table_column_names("Guilds")
+    if set(settings).issubset(set(column_names)):
+        selected_columns = ", ".join(settings)
+        with conn:
+            c.execute(f"SELECT {selected_columns} FROM Guilds WHERE GuildID = ?", (guild_id,))
+            return c.fetchone()
 
 
 def get_fact_send_time(guild_id):
     with conn:
-        c.execute(f"""SELECT Hour, Minute FROM RandomFactSendTime WHERE GuildID={guild_id}""")
+        c.execute(f"""SELECT JobID, Hour, Minute FROM RandomFactSendTime WHERE GuildID={guild_id}""")
         return c.fetchone()
 
 
@@ -82,9 +105,10 @@ def get_reaction_role_by_emoji(guild_id, emoji):
         return c.fetchone()
 
 
-def update_fact_send_time(guild_id, hour, minute):
+def update_fact_send_time(guild_id, job_id, hour, minute):
     with conn:
-        c.execute(f"""UPDATE RandomFactSendTime SET Hour = {hour}, Minute = {minute} WHERE GuildID = {guild_id}""")
+        c.execute("""UPDATE RandomFactSendTime SET JobID = :job_id, Hour = :hour, Minute = :minute WHERE GuildID = :guild_id""",
+                  {"job_id": job_id, "hour": hour, "minute": minute, "guild_id": guild_id})
 
 
 def update_guild_role_reaction_settings(guild_id, role_reaction_channel_id, role_reaction_message_id):
@@ -264,29 +288,34 @@ def convert_normal_time(hour, minute):
         return f"{hour}:{minute}"
 
 
+def closure(guild_id):
+    async def func():
+        random_facts_channel_id = get_guild_settings(int(guild_id), "RandomFactsChannelID")
+        if random_facts_channel_id is not None:
+            random_facts_channel = bot.get_channel(random_facts_channel_id[0])
+            if random_facts_channel is not None:
+                await random_facts_channel.send(embed=string_to_embed(f"{randfacts.get_fact()}."))
+    return func
+
+
 async def schedule_random_facts():
-    # Initializing scheduler
-    scheduler = AsyncIOScheduler()
     if os.path.isfile('GuildSettings.db'):
         for guild in bot.guilds:
             send_time = get_fact_send_time(guild.id)
-            if send_time is not None and len(send_time) > 0:
-                hour = send_time[0]
-                minute = send_time[1]
+            if send_time is None or len(send_time) == 0:
+                hour = 12
+                minute = 0
+            else:
+                job_id = send_time[0]
+                hour = send_time[1]
+                minute = send_time[2]
 
-                async def func():
-                    guild_settings = get_all_guild_settings(guild.id)
-                    if guild_settings is not None:
-                        random_facts_channel = guild_settings[8]
-                        if random_facts_channel is not None:
-                            await random_facts_channel.send(string_to_embed(f"{randfacts.get_fact()}."))
-
-                scheduler.add_job(func, CronTrigger(hour=hour, minute=minute, second=0))
+            func = closure(guild.id)
+            new_job = bot.scheduler.add_job(func, CronTrigger(hour=hour, minute=minute, second=0))
+            update_fact_send_time(guild.id, new_job.id, hour, minute)
     else:
         print("Database file does not exist.")
-        exit()
-
-    scheduler.start()
+        return
 
 
 @bot.command(name='add-twitch', help='Adds your Twitch to the live notifications.', pass_context=True,
@@ -349,11 +378,22 @@ async def fact_send_time(ctx, send_hour, send_minute):
     if hasattr(ctx, "interaction"):
         await ctx.interaction.response.defer()
 
-        guild_id = str(ctx.guild.id)
-        send_time = get_fact_send_time(int(guild_id))
-        if len(send_time) > 0:
-            db_hour = send_time[0]
-            db_minute = send_time[1]
+        guild_id = ctx.guild.id
+
+        random_facts_channel_id = get_guild_settings(guild_id, "RandomFactsChannelID")
+        if random_facts_channel_id is not None and len(random_facts_channel_id) > 0:
+            random_facts_channel = bot.get_channel(random_facts_channel_id[0])
+            if random_facts_channel is None:
+                await ctx.interaction.followup.send(embed=string_to_embed(f"The channel random facts are sent in needs "
+                                                                          f"to be set before you can change the time they "
+                                                                          f"are sent at. Use `/set-random-facts-channel`"))
+                return
+
+        send_time = get_fact_send_time(guild_id)
+        if send_time is not None and len(send_time) > 0:
+            db_job_id = send_time[0]
+            db_hour = send_time[1]
+            db_minute = send_time[2]
             change_send_time_confirmation_components = discord.ui.MessageComponents(
                 discord.ui.ActionRow(
                     (yes_button := discord.ui.Button(label="Yes")),
@@ -379,12 +419,29 @@ async def fact_send_time(ctx, send_hour, send_minute):
                 components=change_send_time_confirmation_components)
 
             if change_send_time_confirmation_message_interaction.custom_id == no_button.custom_id:
+                await ctx.interaction.followup.send(
+                    embed=string_to_embed(f"No problem. Come back if you want to change it."))
                 return
             else:
-                update_fact_send_time(guild_id, send_hour, send_minute)
-                await ctx.interaction.followup.send(
-                    embed=string_to_embed(
-                        f"Changed fact send time to {convert_normal_time(send_hour, send_minute)}."))
+                if db_job_id is not None:
+                    current_job = bot.scheduler.get_job(db_job_id)
+                    if current_job is not None:
+                        new_job = current_job.reschedule(CronTrigger(hour=send_hour, minute=send_minute, second=0))
+                        update_fact_send_time(guild_id, new_job.id, send_hour, send_minute)
+                        await ctx.interaction.followup.send(
+                            embed=string_to_embed(
+                                f"Changed fact send time to {convert_normal_time(send_hour, send_minute)}."))
+                else:
+                    func = closure(guild_id)
+                    new_job = bot.scheduler.add_job(func, CronTrigger(hour=send_hour, minute=send_minute, second=0))
+                    update_fact_send_time(guild_id, new_job.id, send_hour, send_minute)
+                    await ctx.interaction.followup.send(
+                        embed=string_to_embed(
+                            f"Changed fact send time to {convert_normal_time(send_hour, send_minute)}."))
+        else:
+            await ctx.interaction.followup.send(embed=string_to_embed(
+                f"This server is not in our database. Please kick and re-invite MetaBot."))
+            return
     else:
         await ctx.send(
             "MetaBot is now using slash commands! Simply type / and it will bring up the list of commands to use. "
@@ -475,7 +532,10 @@ async def live_notifs_loop():
 @bot.event
 async def on_ready():
     await bot.change_presence(activity=discord.Game("slash commands!"))
+
     await schedule_random_facts()
+    bot.scheduler.start()
+
     live_notifs_loop.start()
 
     print("Bot is ready.")
@@ -490,7 +550,7 @@ async def on_message(message):
 
 @bot.event
 async def on_guild_join(guild):
-    guild_settings = get_all_guild_settings(guild.id)
+    guild_settings = get_guild_settings(guild.id)
     if guild_settings is None:
         insert_guild(guild.id, None, None, None, None, None, "quit on the 1 yard line (left the server)", None)
         insert_rand_fact_send_time(guild.id, 12, 0)
@@ -503,8 +563,8 @@ async def on_raw_reaction_add(payload):
     guild_id = str(payload.guild_id)
     member = get(guild.members, id=payload.user_id)
 
-    role_reaction_channel_id = get_all_guild_settings(guild_id)[2]
-    role_reaction_message_id = get_all_guild_settings(guild_id)[3]
+    role_reaction_channel_id = get_guild_settings(guild_id)[2]
+    role_reaction_message_id = get_guild_settings(guild_id)[3]
 
     saved_roles = get_saved_reaction_roles(guild_id)
     saved_emojis = []
@@ -533,8 +593,8 @@ async def on_raw_reaction_remove(payload):
     guild_id = str(payload.guild_id)
     member = get(guild.members, id=payload.user_id)
 
-    role_reaction_channel_id = get_all_guild_settings(guild_id)[2]
-    role_reaction_message_id = get_all_guild_settings(guild_id)[3]
+    role_reaction_channel_id = get_guild_settings(guild_id)[2]
+    role_reaction_message_id = get_guild_settings(guild_id)[3]
 
     saved_roles = get_saved_reaction_roles(guild_id)
     saved_emojis = []
@@ -565,9 +625,9 @@ async def on_member_join(member):
     member_count = guild.member_count
 
     updated_member_count = discord.Embed(title=f"Total member count: {member_count}", color=0x00ff00)
-    member_count_channel_id = get_all_guild_settings(guild_id)[4]
+    member_count_channel_id = get_guild_settings(guild_id)[4]
     channel = bot.get_channel(member_count_channel_id)
-    member_count_message_id = get_all_guild_settings(guild_id)[5]
+    member_count_message_id = get_guild_settings(guild_id)[5]
     if member_count_message_id is not None:
         msg = await channel.fetch_message(member_count_message_id)
         await msg.edit(embed=updated_member_count)
@@ -588,18 +648,18 @@ async def on_member_remove(member):
         member_count = guild.member_count
 
         updated_member_count = discord.Embed(title=f"Total member count: {member_count}", color=0x00ff00)
-        member_count_channel_id = get_all_guild_settings(guild_id)[4]
+        member_count_channel_id = get_guild_settings(guild_id)[4]
         member_count_channel = bot.get_channel(member_count_channel_id)
-        member_count_message_id = get_all_guild_settings(guild_id)[5]
+        member_count_message_id = get_guild_settings(guild_id)[5]
         if member_count_channel_id is not None:
             msg = await member_count_channel.fetch_message(member_count_message_id)
             await msg.edit(embed=updated_member_count)
 
         print(f"{member.guild} member count has been updated (-1) on {now}.\n Total Member Count: {member_count}")
-        leave_message_channel_id = get_all_guild_settings(guild_id)[6]
+        leave_message_channel_id = get_guild_settings(guild_id)[6]
         if leave_message_channel_id is not None:
             leave_message_channel = bot.get_channel(leave_message_channel_id)
-            leave_message = get_all_guild_settings(guild_id)[7]
+            leave_message = get_guild_settings(guild_id)[7]
             await leave_message_channel.send(f"{member.mention} {leave_message}")
 
 
@@ -621,7 +681,8 @@ async def insert_rr_message(ctx):
             await react_message.add_reaction(role[1])
 
         update_guild_role_reaction_settings(guild_id, message_channel_id, react_message.id)
-        msg = await ctx.interaction.followup.send(embed=string_to_embed(f"Interaction message has been sent. This message will delete."), ephemeral=True)
+        msg = await ctx.interaction.followup.send(
+            embed=string_to_embed(f"Interaction message has been sent. This message will delete."), ephemeral=True)
         await msg.delete(delay=5)
     else:
         await ctx.send(
@@ -673,15 +734,15 @@ async def insert_member_count_error(error, ctx):
 
 @bot.command(name='set-leave-messages-channel', help='Sets the channel where leave messages will be sent.',
              pass_context=True, application_command_meta=commands.ApplicationCommandMeta(
-                 options=[
-                     discord.ApplicationCommandOption(
-                         required=True,
-                         name='channel',
-                         type=discord.ApplicationCommandOptionType.channel,
-                         description='What channel would you like leave messages to be sent in?'
-                     )
-                 ]
-             ))
+        options=[
+            discord.ApplicationCommandOption(
+                required=True,
+                name='channel',
+                type=discord.ApplicationCommandOptionType.channel,
+                description='What channel would you like leave messages to be sent in?'
+            )
+        ]
+    ))
 @has_permissions(administrator=True)
 async def set_leave_messages_channel(ctx, channel: discord.TextChannel):
     if hasattr(ctx, "interaction"):
@@ -706,15 +767,15 @@ async def set_leave_messages_channel_error(error, ctx):
 
 @bot.command(name='change-leave-message', help='Changes the suffix of what is said after a member leaves.',
              pass_context=True, application_command_meta=commands.ApplicationCommandMeta(
-                 options=[
-                     discord.ApplicationCommandOption(
-                         required=True,
-                         name='leave_message',
-                         type=discord.ApplicationCommandOptionType.string,
-                         description='What is the suffix you would like after a user leaves?'
-                     )
-                 ]
-             ))
+        options=[
+            discord.ApplicationCommandOption(
+                required=True,
+                name='leave_message',
+                type=discord.ApplicationCommandOptionType.string,
+                description='What is the suffix you would like after a user leaves?'
+            )
+        ]
+    ))
 @has_permissions(administrator=True)
 async def change_leave_message(ctx, leave_message):
     if hasattr(ctx, "interaction"):
@@ -722,7 +783,8 @@ async def change_leave_message(ctx, leave_message):
 
         update_guild_leave_message(ctx.guild.id, leave_message)
         await ctx.interaction.followup.send(
-            embed=string_to_embed(f"Changed server leave message to: `{leave_message}`\n__Example__\nInstead of: Bobby#1234 left the server.\nIt is now: Bobby#1234 {leave_message}"))
+            embed=string_to_embed(
+                f"Changed server leave message to: `{leave_message}`\n__Example__\nInstead of: Bobby#1234 left the server.\nIt is now: Bobby#1234 {leave_message}"))
     else:
         await ctx.send(
             "MetaBot is now using slash commands! Simply type / and it will bring up the list of commands to use. "
@@ -740,15 +802,15 @@ async def change_leave_message_error(error, ctx):
 
 @bot.command(name='set-random-facts-channel', help='Sets the channel where random facts will be sent.',
              pass_context=True, application_command_meta=commands.ApplicationCommandMeta(
-                 options=[
-                     discord.ApplicationCommandOption(
-                         required=True,
-                         name='channel',
-                         type=discord.ApplicationCommandOptionType.channel,
-                         description='What is the channel you would like random facts to be sent in?'
-                     )
-                 ]
-             ))
+        options=[
+            discord.ApplicationCommandOption(
+                required=True,
+                name='channel',
+                type=discord.ApplicationCommandOptionType.channel,
+                description='What is the channel you would like random facts to be sent in?'
+            )
+        ]
+    ))
 @has_permissions(administrator=True)
 async def set_random_facts_channel(ctx, channel: discord.TextChannel):
     if hasattr(ctx, "interaction"):
@@ -826,7 +888,7 @@ async def add_role(ctx, role: discord.Role, role_emoji: str):
             else:
                 insert_guild_role(guild_id, role.id, role.name, role_emoji)
 
-        guild_settings = get_all_guild_settings(guild_id)
+        guild_settings = get_guild_settings(guild_id)
         if guild_settings is not None:
             channel_id = guild_settings[2]
             if channel_id is not None:
@@ -893,7 +955,7 @@ async def remove_role(ctx, role: discord.Role):
             saved_roles = get_saved_reaction_roles(guild_id)
             updated_reaction_message = update_react_message(guild_id, saved_roles)
 
-            guild_settings = get_all_guild_settings(guild_id)
+            guild_settings = get_guild_settings(guild_id)
             if guild_settings is not None:
                 channel_id = guild_settings[2]
                 if channel_id is not None:

@@ -26,6 +26,7 @@ c.execute("""CREATE TABLE GuildRoles (
 
 c.execute("""CREATE TABLE RandomFactSendTime (
             GuildID INT PRIMARY KEY NOT NULL,
+            JobID TEXT,
             Hour INT,
             Minute INT
          )""")
@@ -49,9 +50,9 @@ def insert_guild(guild_id, role_reaction_channel_id, react_message_id, member_co
                    member_count_message_id, leave_message_channel_id, leave_message, random_facts_channel_id))
 
 
-def insert_random_fact_send_time(guild_id, hour, minute):
+def insert_random_fact_send_time(guild_id, job_id, hour, minute):
     with conn:
-        c.execute(f"INSERT INTO RandomFactSendTime VALUES (?, ?, ?)", (int(guild_id), int(hour), int(minute)))
+        c.execute(f"INSERT INTO RandomFactSendTime VALUES (?, ?, ?, ?)", (int(guild_id), job_id, int(hour), int(minute)))
 
 
 with open('guild_settings.json', 'r') as file:
@@ -74,7 +75,7 @@ for guild_id, values in guild_settings.items():
 
     send_time_hour = values["random_facts_send_time"]["hour"]
     send_time_minute = values["random_facts_send_time"]["minute"]
-    insert_random_fact_send_time(guild_id, send_time_hour, send_time_minute)
+    insert_random_fact_send_time(guild_id, None, send_time_hour, send_time_minute)
 
 conn.commit()
 conn.close()
