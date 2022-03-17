@@ -550,7 +550,9 @@ async def on_message(message):
 
 @bot.event
 async def on_guild_join(guild):
-    guild_settings = get_guild_settings(guild.id)
+    guild_settings = get_guild_settings(guild.id, "GuildName", "RoleReactionChannelID", "ReactMessageID",
+                                        "MemberCountChannelID", "MemberCountMessageID", "LeaveMessageChannelID",
+                                        "LeaveMessage", "RandomFactsChannelID")
     if guild_settings is None:
         insert_guild(guild.id, None, None, None, None, None, "quit on the 1 yard line (left the server)", None)
         insert_rand_fact_send_time(guild.id, 12, 0)
@@ -563,8 +565,8 @@ async def on_raw_reaction_add(payload):
     guild_id = str(payload.guild_id)
     member = get(guild.members, id=payload.user_id)
 
-    role_reaction_channel_id = get_guild_settings(guild_id)[2]
-    role_reaction_message_id = get_guild_settings(guild_id)[3]
+    role_reaction_channel_id = get_guild_settings(guild_id, "RoleReactionChannelID")[0]
+    role_reaction_message_id = get_guild_settings(guild_id, "ReactMessageID")[0]
 
     saved_roles = get_saved_reaction_roles(guild_id)
     saved_emojis = []
@@ -593,8 +595,8 @@ async def on_raw_reaction_remove(payload):
     guild_id = str(payload.guild_id)
     member = get(guild.members, id=payload.user_id)
 
-    role_reaction_channel_id = get_guild_settings(guild_id)[2]
-    role_reaction_message_id = get_guild_settings(guild_id)[3]
+    role_reaction_channel_id = get_guild_settings(guild_id, "RoleReactionChannelID")[0]
+    role_reaction_message_id = get_guild_settings(guild_id, "ReactMessageID")[0]
 
     saved_roles = get_saved_reaction_roles(guild_id)
     saved_emojis = []
@@ -625,9 +627,9 @@ async def on_member_join(member):
     member_count = guild.member_count
 
     updated_member_count = discord.Embed(title=f"Total member count: {member_count}", color=0x00ff00)
-    member_count_channel_id = get_guild_settings(guild_id)[4]
+    member_count_channel_id = get_guild_settings(guild_id, "MemberCountChannelID")[0]
     channel = bot.get_channel(member_count_channel_id)
-    member_count_message_id = get_guild_settings(guild_id)[5]
+    member_count_message_id = get_guild_settings(guild_id, "MemberCountMessageID")[0]
     if member_count_message_id is not None:
         msg = await channel.fetch_message(member_count_message_id)
         await msg.edit(embed=updated_member_count)
@@ -648,18 +650,18 @@ async def on_member_remove(member):
         member_count = guild.member_count
 
         updated_member_count = discord.Embed(title=f"Total member count: {member_count}", color=0x00ff00)
-        member_count_channel_id = get_guild_settings(guild_id)[4]
+        member_count_channel_id = get_guild_settings(guild_id, "MemberCountChannelID")[0]
         member_count_channel = bot.get_channel(member_count_channel_id)
-        member_count_message_id = get_guild_settings(guild_id)[5]
+        member_count_message_id = get_guild_settings(guild_id, "MemberCountMessageID")[0]
         if member_count_channel_id is not None:
             msg = await member_count_channel.fetch_message(member_count_message_id)
             await msg.edit(embed=updated_member_count)
 
         print(f"{member.guild} member count has been updated (-1) on {now}.\n Total Member Count: {member_count}")
-        leave_message_channel_id = get_guild_settings(guild_id)[6]
+        leave_message_channel_id = get_guild_settings(guild_id, "LeaveMessageChannelID")[0]
         if leave_message_channel_id is not None:
             leave_message_channel = bot.get_channel(leave_message_channel_id)
-            leave_message = get_guild_settings(guild_id)[7]
+            leave_message = get_guild_settings(guild_id, "LeaveMessage")[0]
             await leave_message_channel.send(f"{member.mention} {leave_message}")
 
 
@@ -888,13 +890,13 @@ async def add_role(ctx, role: discord.Role, role_emoji: str):
             else:
                 insert_guild_role(guild_id, role.id, role.name, role_emoji)
 
-        guild_settings = get_guild_settings(guild_id)
+        guild_settings = get_guild_settings(guild_id, "RoleReactionChannelID", "ReactMessageID")
         if guild_settings is not None:
-            channel_id = guild_settings[2]
+            channel_id = guild_settings[0]
             if channel_id is not None:
                 channel = bot.get_channel(channel_id)
                 if channel is not None:
-                    msg = await channel.fetch_message(guild_settings[3])
+                    msg = await channel.fetch_message(guild_settings[1])
                     if msg is not None:
                         new_role_info = (role.id, role.name, role_emoji)
                         saved_roles.append(new_role_info)
@@ -955,13 +957,13 @@ async def remove_role(ctx, role: discord.Role):
             saved_roles = get_saved_reaction_roles(guild_id)
             updated_reaction_message = update_react_message(guild_id, saved_roles)
 
-            guild_settings = get_guild_settings(guild_id)
+            guild_settings = get_guild_settings(guild_id, "RoleReactionChannelID", "ReactMessageID")
             if guild_settings is not None:
-                channel_id = guild_settings[2]
+                channel_id = guild_settings[0]
                 if channel_id is not None:
                     channel = bot.get_channel(channel_id)
                     if channel is not None:
-                        msg = await channel.fetch_message(guild_settings[3])
+                        msg = await channel.fetch_message(guild_settings[1])
                         if msg is not None:
                             await msg.edit(embed=updated_reaction_message)
                         for member in guild.members:
