@@ -998,34 +998,42 @@ async def remove_role_error(error, ctx):
              application_command_meta=commands.ApplicationCommandMeta(options=[]))
 @has_permissions(administrator=True)
 async def update_message(ctx):
-    guild_id = ctx.guild.id
+    if hasattr(ctx, "interaction"):
+        await ctx.interaction.response.defer()
+        guild_id = ctx.guild.id
 
-    saved_roles = get_saved_reaction_roles(guild_id)
-    updated_reaction_message = update_react_message(guild_id, saved_roles)
+        saved_roles = get_saved_reaction_roles(guild_id)
+        updated_reaction_message = update_react_message(guild_id, saved_roles)
 
-    guild_settings = get_guild_settings(guild_id, "RoleReactionChannelID", "ReactMessageID")
-    if guild_settings is not None:
-        channel_id = guild_settings[0]
-        if channel_id is not None:
-            channel = bot.get_channel(channel_id)
-            if channel is not None:
-                msg = await channel.fetch_message(guild_settings[1])
-                if msg is not None:
-                    await msg.edit(embed=updated_reaction_message)
-                    await ctx.interaction.followup.send(embed=string_to_embed(f"Role reaction message has been updated."))
-                    return
-                else:
-                    await ctx.interaction.followup.send(
-                        embed=string_to_embed(f"Role reaction message could not be found. Please insert a new one using `/insert-role-reaction-message`."))
-                    return
+        guild_settings = get_guild_settings(guild_id, "RoleReactionChannelID", "ReactMessageID")
+        if guild_settings is not None:
+            channel_id = guild_settings[0]
+            if channel_id is not None:
+                channel = bot.get_channel(channel_id)
+                if channel is not None:
+                    msg = await channel.fetch_message(guild_settings[1])
+                    if msg is not None:
+                        await msg.edit(embed=updated_reaction_message)
+                        await ctx.interaction.followup.send(embed=string_to_embed(f"Role reaction message has been updated."))
+                        return
+                    else:
+                        await ctx.interaction.followup.send(
+                            embed=string_to_embed(f"Role reaction message could not be found. Please insert a new one using `/insert-role-reaction-message`."))
+                        return
+            else:
+                await ctx.interaction.followup.send(
+                    embed=string_to_embed(f"The role reaction message has not been created yet. To do this, run "
+                                          f"`/insert-role-reaction-message` in the channel you would like it to show up in."))
+                return
         else:
             await ctx.interaction.followup.send(
-                embed=string_to_embed(f"The role reaction message has not been created yet. To do this, run "
-                                      f"`/insert-role-reaction-message` in the channel you would like it to show up in."))
-            return
+                embed=string_to_embed(f"This server isn't in our database. Try kicking and adding me again."))
     else:
-        await ctx.interaction.followup.send(
-            embed=string_to_embed(f"This server isn't in our database. Try kicking and adding me again."))
+        await ctx.send(
+            "MetaBot is now using slash commands! Simply type / and it will bring up the list of commands to use. "
+            "If the commands don't show up, make sure MetaBot has the permission 'Use Application Commands'. If that doesn't "
+            "work, just kick and re-invite the bot. Top.gg bot page (includes invite link): "
+            "https://top.gg/bot/753479351139303484")
 
 
 @bot.command(name='happy-birthday', help='Tags a member with a happy birthday message.', pass_context=True,
