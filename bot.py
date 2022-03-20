@@ -1014,7 +1014,8 @@ async def update_message(ctx):
                     msg = await channel.fetch_message(guild_settings[1])
                     if msg is not None:
                         await msg.edit(embed=updated_reaction_message)
-                        await ctx.interaction.followup.send(embed=string_to_embed(f"Role reaction message has been updated."))
+                        msg = await ctx.interaction.followup.send(embed=string_to_embed(f"Role reaction message has been updated. This message will delete."))
+                        await msg.delete(delay=5)
                         return
                     else:
                         await ctx.interaction.followup.send(
