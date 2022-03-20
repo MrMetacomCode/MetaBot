@@ -969,7 +969,7 @@ async def remove_role(ctx, role: discord.Role):
                         for member in guild.members:
                             try:
                                 await msg.remove_reaction(role_being_removed_info[1], member)
-                            except:
+                            except Exception:
                                 pass
                 else:
                     await ctx.interaction.followup.send(
@@ -992,6 +992,40 @@ async def remove_role_error(error, ctx):
     if isinstance(error, MissingPermissions):
         await ctx.interaction.response.send_message(
             embed=string_to_embed("You don't have the permissions to change the roles."))
+
+
+@bot.command(name='update-role-reaction-message', help='Updates the role reaction message.', pass_context=True,
+             application_command_meta=commands.ApplicationCommandMeta(options=[]))
+@has_permissions(administrator=True)
+async def update_message(ctx):
+    guild_id = ctx.guild.id
+
+    saved_roles = get_saved_reaction_roles(guild_id)
+    updated_reaction_message = update_react_message(guild_id, saved_roles)
+
+    guild_settings = get_guild_settings(guild_id, "RoleReactionChannelID", "ReactMessageID")
+    if guild_settings is not None:
+        channel_id = guild_settings[0]
+        if channel_id is not None:
+            channel = bot.get_channel(channel_id)
+            if channel is not None:
+                msg = await channel.fetch_message(guild_settings[1])
+                if msg is not None:
+                    await msg.edit(embed=updated_reaction_message)
+                    await ctx.interaction.followup.send(embed=string_to_embed(f"Role reaction message has been updated."))
+                    return
+                else:
+                    await ctx.interaction.followup.send(
+                        embed=string_to_embed(f"Role reaction message could not be found. Please insert a new one using `/insert-role-reaction-message`."))
+                    return
+        else:
+            await ctx.interaction.followup.send(
+                embed=string_to_embed(f"The role reaction message has not been created yet. To do this, run "
+                                      f"`/insert-role-reaction-message` in the channel you would like it to show up in."))
+            return
+    else:
+        await ctx.interaction.followup.send(
+            embed=string_to_embed(f"This server isn't in our database. Try kicking and adding me again."))
 
 
 @bot.command(name='happy-birthday', help='Tags a member with a happy birthday message.', pass_context=True,
