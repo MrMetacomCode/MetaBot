@@ -7,13 +7,11 @@ import random
 import sqlite3
 import aiohttp
 import discord
-import asyncio
 import requests
 import randfacts
 from io import BytesIO
 from discord import Intents
 from discord import Streaming
-from twitchAPI.twitch import Twitch
 from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from googleapiclient.discovery import build
@@ -24,8 +22,8 @@ from apscheduler.triggers.cron import CronTrigger
 from discord.ext import commands, tasks
 from discord.utils import get
 
-# TESTINGBOT_DISCORD_TOKEN
-TOKEN = os.getenv('METABOT_DISCORD_TOKEN')
+# TESTINGMF_DISCORD_TOKEN
+TOKEN = os.getenv('TESTINGMF_DISCORD_TOKEN')
 SPREADSHEET_ID = '1S-AIIx2EQrLX8RHJr_AVIGPsQjehEdfUmbwKyinOs_I'
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
@@ -156,10 +154,10 @@ def insert_guild(guild_id, role_reaction_channel_id, react_message_id, member_co
                    member_count_message_id, leave_message_channel_id, leave_message, random_facts_channel_id))
 
 
-def insert_rand_fact_send_time(guild_id, hour, minute):
+def insert_rand_fact_send_time(guild_id, hour, minute, job_id=None):
     with conn:
-        c.execute(f"INSERT INTO RandomFactSendTime VALUES (?, ?, ?)",
-                  (int(guild_id), hour, minute))
+        c.execute(f"INSERT INTO RandomFactSendTime VALUES (?, ?, ?, ?)",
+                  (int(guild_id), job_id, hour, minute))
 
 
 def insert_guild_role(guild_id, role_id, role_name, role_emoji):
@@ -804,15 +802,15 @@ async def change_leave_message_error(error, ctx):
 
 @bot.command(name='set-random-facts-channel', help='Sets the channel where random facts will be sent.',
              pass_context=True, application_command_meta=commands.ApplicationCommandMeta(
-        options=[
-            discord.ApplicationCommandOption(
-                required=True,
-                name='channel',
-                type=discord.ApplicationCommandOptionType.channel,
-                description='What is the channel you would like random facts to be sent in?'
-            )
-        ]
-    ))
+                 options=[
+                     discord.ApplicationCommandOption(
+                         required=True,
+                         name='channel',
+                         type=discord.ApplicationCommandOptionType.channel,
+                         description='What is the channel you would like random facts to be sent in?'
+                     )
+                 ]
+             ))
 @has_permissions(administrator=True)
 async def set_random_facts_channel(ctx, channel: discord.TextChannel):
     if hasattr(ctx, "interaction"):
@@ -865,15 +863,19 @@ async def add_role(ctx, role: discord.Role, role_emoji: str):
         for saved_role in saved_roles:
             used_emojis.append(saved_role[2])
 
+        guild_emoji_strings = []
+        for guild_emoji in guild.emojis:
+            guild_emoji_strings.append(str(guild_emoji))
+
         if role_emoji in used_emojis:
             msg = await ctx.interaction.followup.send(
                 embed=string_to_embed(f"This emoji is already assigned to another role. Please use a different one."))
-            await msg.delete(delay=10)
+            await msg.delete(delay=5)
             return
-        elif role_emoji not in guild.emojis and role_emoji not in emoji.EMOJI_DATA:
+        elif role_emoji not in guild_emoji_strings and role_emoji not in emoji.EMOJI_DATA:
             msg = await ctx.interaction.followup.send(
-                embed=string_to_embed(f"The emoji you gave does not exist or is not in this server."))
-            await msg.delete(delay=10)
+                embed=string_to_embed(f"The emoji you gave does not exist or is not in this server. This message will delete."))
+            await msg.delete(delay=5)
             return
         else:
             guild_reaction_roles = get_saved_reaction_roles(guild_id)
@@ -885,7 +887,7 @@ async def add_role(ctx, role: discord.Role, role_emoji: str):
             if role.id in reaction_role_ids:
                 update_role_reaction(guild_id, role.id, role.name, role_emoji)
                 await ctx.interaction.followup.send(
-                    embed=string_to_embed(f"The role {role.mention} is already in the list of reaction roles."))
+                    embed=string_to_embed(f"{role.mention} is already in the list of reaction roles."))
                 return
             else:
                 insert_guild_role(guild_id, role.id, role.name, role_emoji)
@@ -905,8 +907,8 @@ async def add_role(ctx, role: discord.Role, role_emoji: str):
                         await msg.add_reaction(role_emoji)
                         msg = await ctx.interaction.followup.send(
                             embed=string_to_embed(
-                                f"The role {role.mention} has been added to the role reaction message."))
-                        await msg.delete(delay=3)
+                                f"{role.mention} has been added to the role reaction message. This message will delete."))
+                        await msg.delete(delay=5)
             else:
                 await ctx.interaction.followup.send(
                     embed=string_to_embed(f"The role reaction message has not been created yet. To do this, run "
@@ -966,11 +968,15 @@ async def remove_role(ctx, role: discord.Role):
                         msg = await channel.fetch_message(guild_settings[1])
                         if msg is not None:
                             await msg.edit(embed=updated_reaction_message)
-                        for member in guild.members:
-                            try:
-                                await msg.remove_reaction(role_being_removed_info[1], member)
-                            except Exception:
-                                pass
+                            for member in guild.members:
+                                try:
+                                    await msg.remove_reaction(role_being_removed_info[2], member)
+                                except Exception:
+                                    continue
+                            msg = await ctx.interaction.followup.send(
+                                embed=string_to_embed(
+                                    f"{role.mention} has been removed from the role reaction message. This message will delete."))
+                            await msg.delete(delay=5)
                 else:
                     await ctx.interaction.followup.send(
                         embed=string_to_embed(f"The role reaction message has not been created yet. To do this, run "
