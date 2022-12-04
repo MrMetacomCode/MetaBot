@@ -10,7 +10,7 @@ import discord
 import requests
 import randfacts
 from io import BytesIO
-from discord import Intents, option
+from discord import Intents
 from discord import Streaming
 from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -105,9 +105,8 @@ def get_reaction_role_by_emoji(guild_id, emoji):
 
 def update_fact_send_time(guild_id, job_id, hour, minute):
     with conn:
-        c.execute(
-            """UPDATE RandomFactSendTime SET JobID = :job_id, Hour = :hour, Minute = :minute WHERE GuildID = :guild_id""",
-            {"job_id": job_id, "hour": hour, "minute": minute, "guild_id": guild_id})
+        c.execute("""UPDATE RandomFactSendTime SET JobID = :job_id, Hour = :hour, Minute = :minute WHERE GuildID = :guild_id""",
+                  {"job_id": job_id, "hour": hour, "minute": minute, "guild_id": guild_id})
 
 
 def update_guild_role_reaction_settings(guild_id, role_reaction_channel_id, role_reaction_message_id):
@@ -294,7 +293,6 @@ def closure(guild_id):
             random_facts_channel = bot.get_channel(random_facts_channel_id[0])
             if random_facts_channel is not None:
                 await random_facts_channel.send(embed=string_to_embed(f"{randfacts.get_fact()}."))
-
     return func
 
 
@@ -358,21 +356,21 @@ async def add_twitch(ctx, twitch_name):
 
 @bot.command(name='change-fact-send-time', help='Change the time a random fact is sent. Hours is in 24 hour format.',
              pass_context=True, application_command_meta=commands.ApplicationCommandMeta(
-        options=[
-            discord.ApplicationCommandOption(
-                required=True,
-                name='send_hour',
-                type=discord.ApplicationCommandOptionType.integer,
-                description='What is the hour you would like the fact to send at?'
-            ),
-            discord.ApplicationCommandOption(
-                required=True,
-                name='send_minute',
-                type=discord.ApplicationCommandOptionType.integer,
-                description='What is the minute you would like the fact to send at?'
-            ),
-        ]
-    ))
+                 options=[
+                     discord.ApplicationCommandOption(
+                         required=True,
+                         name='send_hour',
+                         type=discord.ApplicationCommandOptionType.integer,
+                         description='What is the hour you would like the fact to send at?'
+                     ),
+                     discord.ApplicationCommandOption(
+                         required=True,
+                         name='send_minute',
+                         type=discord.ApplicationCommandOptionType.integer,
+                         description='What is the minute you would like the fact to send at?'
+                     ),
+                 ]
+             ))
 @has_permissions(kick_members=True)
 async def fact_send_time(ctx, send_hour, send_minute):
     if hasattr(ctx, "interaction"):
@@ -768,10 +766,16 @@ async def set_leave_messages_channel_error(error, ctx):
 
 
 @bot.command(name='change-leave-message', help='Changes the suffix of what is said after a member leaves.',
-             pass_context=True)
-@option("leave_message",
-        description="What is the suffix you would like after a user leaves?",
-        required=True, type=str)
+             pass_context=True, application_command_meta=commands.ApplicationCommandMeta(
+        options=[
+            discord.ApplicationCommandOption(
+                required=True,
+                name='leave_message',
+                type=discord.ApplicationCommandOptionType.string,
+                description='What is the suffix you would like after a user leaves?'
+            )
+        ]
+    ))
 @has_permissions(administrator=True)
 async def change_leave_message(ctx, leave_message):
     if hasattr(ctx, "interaction"):
@@ -796,11 +800,17 @@ async def change_leave_message_error(error, ctx):
             embed=string_to_embed("You need to be an administrator to change the leave messages."))
 
 
-@bot.slash_command(name='set-random-facts-channel', description='Sets the channel where random facts will be sent.',
-                   pass_context=True)
-@option("channel",
-        description="What is the channel you would like random facts to be sent in?",
-        required=True, type=discord.TextChannel)
+@bot.command(name='set-random-facts-channel', help='Sets the channel where random facts will be sent.',
+             pass_context=True, application_command_meta=commands.ApplicationCommandMeta(
+                 options=[
+                     discord.ApplicationCommandOption(
+                         required=True,
+                         name='channel',
+                         type=discord.ApplicationCommandOptionType.channel,
+                         description='What is the channel you would like random facts to be sent in?'
+                     )
+                 ]
+             ))
 @has_permissions(administrator=True)
 async def set_random_facts_channel(ctx, channel: discord.TextChannel):
     if hasattr(ctx, "interaction"):
@@ -823,13 +833,23 @@ async def set_random_facts_channel_error(error, ctx):
             embed=string_to_embed("You need to be an administrator to set where the random facts send."))
 
 
-@bot.command(name='add-reaction-role', help='Adds role to role reaction message.', pass_context=True)
-@option("role",
-        description="What is the role you would like to add to the reaction message?",
-        required=True, type=discord.Role)
-@option("role_emoji",
-        description="What is the emoji you would like to assign to the role you're adding?",
-        required=True, type=str)
+@bot.command(name='add-reaction-role', help='Adds role to role reaction message.', pass_context=True,
+             application_command_meta=commands.ApplicationCommandMeta(
+                 options=[
+                     discord.ApplicationCommandOption(
+                         required=True,
+                         name='role',
+                         type=discord.ApplicationCommandOptionType.role,
+                         description='What is the role you would like to add to the reaction message?'
+                     ),
+                     discord.ApplicationCommandOption(
+                         required=True,
+                         name='role_emoji',
+                         type=discord.ApplicationCommandOptionType.string,
+                         description="What is the emoji you would like to assign to the role you're adding?"
+                     )
+                 ]
+             ))
 @has_permissions(administrator=True)
 async def add_role(ctx, role: discord.Role, role_emoji: str):
     if hasattr(ctx, "interaction"):
@@ -854,8 +874,7 @@ async def add_role(ctx, role: discord.Role, role_emoji: str):
             return
         elif role_emoji not in guild_emoji_strings and role_emoji not in emoji.EMOJI_DATA:
             msg = await ctx.interaction.followup.send(
-                embed=string_to_embed(
-                    f"The emoji you gave does not exist or is not in this server. This message will delete."))
+                embed=string_to_embed(f"The emoji you gave does not exist or is not in this server. This message will delete."))
             await msg.delete(delay=5)
             return
         else:
@@ -913,11 +932,17 @@ async def add_role_error(error, ctx):
             embed=string_to_embed("You don't have the permissions to change the roles."))
 
 
-@bot.slash_command(name='remove-reaction-role', description='Removes role from the role reaction message.',
-                   pass_context=True)
-@option("role",
-        description="What is the role you would like to remove from the reaction message?",
-        required=True, type=discord.Role)
+@bot.command(name='remove-reaction-role', help='Removes role from the role reaction message.', pass_context=True,
+             application_command_meta=commands.ApplicationCommandMeta(
+                 options=[
+                     discord.ApplicationCommandOption(
+                         required=True,
+                         name='role',
+                         type=discord.ApplicationCommandOptionType.role,
+                         description='What is the role you would like to remove from the reaction message?'
+                     )
+                 ]
+             ))
 @has_permissions(administrator=True)
 async def remove_role(ctx, role: discord.Role):
     if hasattr(ctx, "interaction"):
@@ -975,8 +1000,8 @@ async def remove_role_error(error, ctx):
             embed=string_to_embed("You don't have the permissions to change the roles."))
 
 
-@bot.slash_command(name='update-role-reaction-message', description='Updates the role reaction message.',
-                   pass_context=True)
+@bot.command(name='update-role-reaction-message', help='Updates the role reaction message.', pass_context=True,
+             application_command_meta=commands.ApplicationCommandMeta(options=[]))
 @has_permissions(administrator=True)
 async def update_message(ctx):
     if hasattr(ctx, "interaction"):
@@ -995,14 +1020,12 @@ async def update_message(ctx):
                     msg = await channel.fetch_message(guild_settings[1])
                     if msg is not None:
                         await msg.edit(embed=updated_reaction_message)
-                        msg = await ctx.interaction.followup.send(
-                            embed=string_to_embed(f"Role reaction message has been updated. This message will delete."))
+                        msg = await ctx.interaction.followup.send(embed=string_to_embed(f"Role reaction message has been updated. This message will delete."))
                         await msg.delete(delay=5)
                         return
                     else:
                         await ctx.interaction.followup.send(
-                            embed=string_to_embed(
-                                f"Role reaction message could not be found. Please insert a new one using `/insert-role-reaction-message`."))
+                            embed=string_to_embed(f"Role reaction message could not be found. Please insert a new one using `/insert-role-reaction-message`."))
                         return
             else:
                 await ctx.interaction.followup.send(
@@ -1020,14 +1043,21 @@ async def update_message(ctx):
             "https://top.gg/bot/753479351139303484")
 
 
-@bot.slash_command(name='happy-birthday', description='Tags a member with a happy birthday message.', pass_context=True)
-@option("birthday_member",
-        description="Who is the user you would like to congratulate?",
-        required=True, type=discord.Member)
-async def happy_birthday(ctx, birthday_member: discord.Member):
+@bot.command(name='happy-birthday', help='Tags a member with a happy birthday message.', pass_context=True,
+             application_command_meta=commands.ApplicationCommandMeta(
+                 options=[
+                     discord.ApplicationCommandOption(
+                         required=True,
+                         name='member',
+                         type=discord.ApplicationCommandOptionType.user,
+                         description='What is the user you would like to congratulate?'
+                     )
+                 ]
+             ))
+async def happy_birthday(ctx, member: discord.Member):
     if hasattr(ctx, "interaction"):
         await ctx.interaction.response.defer()
-        member = str(birthday_member)
+        member = str(member)
         member_name_end = member.find("#")
         member_name = member[:member_name_end]
         member_id = member[member_name_end + 1:]
@@ -1042,13 +1072,23 @@ async def happy_birthday(ctx, birthday_member: discord.Member):
             "https://top.gg/bot/753479351139303484"))
 
 
-@bot.slash_command(name='roll-dice', description='Simulates rolling dice.', pass_context=True)
-@option("number_of_dice",
-        description="What is the number of dice you are simulating rolling?",
-        required=True, type=int)
-@option("number_of_sides",
-        description="What is the number of sides on each die you are simulating rolling?",
-        required=True, type=int)
+@bot.command(name='roll-dice', help='Simulates rolling dice.', pass_context=True,
+             application_command_meta=commands.ApplicationCommandMeta(
+                 options=[
+                     discord.ApplicationCommandOption(
+                         required=True,
+                         name='number_of_dice',
+                         type=discord.ApplicationCommandOptionType.integer,
+                         description='What is the number of dice you are simulating rolling?'
+                     ),
+                     discord.ApplicationCommandOption(
+                         required=True,
+                         name='number_of_sides',
+                         type=discord.ApplicationCommandOptionType.integer,
+                         description='What is the number of sides on each die you are simulating rolling?'
+                     )
+                 ]
+             ))
 async def roll(ctx, number_of_dice: int, number_of_sides: int):
     if hasattr(ctx, "interaction"):
         await ctx.interaction.response.defer()
@@ -1065,7 +1105,8 @@ async def roll(ctx, number_of_dice: int, number_of_sides: int):
             "https://top.gg/bot/753479351139303484"))
 
 
-@bot.slash_command(name='guess', description='Guess a random number in 10 tries.', pass_context=True)
+@bot.command(name='guess', help='Guess a random number in 10 tries.', pass_context=True,
+             application_command_meta=commands.ApplicationCommandMeta(options=[]))
 async def guess_number(ctx):
     if hasattr(ctx, "interaction"):
         await ctx.interaction.response.defer()
@@ -1100,5 +1141,15 @@ async def guess_number(ctx):
             "https://top.gg/bot/753479351139303484")
 
 
-print("Bot is starting...")
-bot.run(TOKEN)
+bot.remove_command("help")
+
+
+async def main():
+    await bot.login(TOKEN)
+    await bot.register_application_commands(bot.commands)
+    await bot.connect()
+
+
+print("Bot started...")
+loop = bot.loop
+loop.run_until_complete(main())
